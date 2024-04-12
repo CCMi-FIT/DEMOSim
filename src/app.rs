@@ -1,4 +1,5 @@
 use crate::model::Model;
+use crate::persistence::save_model;
 use crate::windows::EguiWindows;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
@@ -39,6 +40,10 @@ impl eframe::App for DemosimApp {
                 let is_web = cfg!(target_arch = "wasm32");
                 if !is_web {
                     ui.menu_button("File", |ui| {
+                        if ui.button("Save model").clicked() {
+                            save_model(&self.model).unwrap();
+                            ui.close_menu();
+                        }
                         if ui.button("Quit").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
