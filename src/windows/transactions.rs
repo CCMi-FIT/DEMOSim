@@ -13,6 +13,7 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
             ui.strong("Product");
             ui.strong("Initiator");
             ui.strong("Executor");
+            // ui.strong("Impediments");
             ui.end_row();
 
             let used_executors: HashSet<_> = transactions.iter().map(|tr| &tr.executor).collect();
@@ -44,6 +45,7 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                             ui.selectable_value(&mut transaction.executor, actor_role.to_owned(), actor_role.to_owned().name);
                         }
                     });
+
                 if ui.button("Delete").clicked() {
                     to_delete.push(index);
                 }
