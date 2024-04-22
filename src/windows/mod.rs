@@ -3,7 +3,6 @@ use crate::model::Model;
 mod transactions;
 mod actor_roles;
 
-
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct EguiWindows {
     pub transactions: bool,
@@ -12,18 +11,14 @@ pub struct EguiWindows {
 
 impl Default for EguiWindows {
     fn default() -> Self {
-        Self::none()
-    }
-}
-
-impl EguiWindows {
-    fn none() -> Self {
         Self {
             transactions: false,
             actor_roles: false,
         }
     }
+}
 
+impl EguiWindows {
     pub fn windows(&mut self, ctx: &egui::Context, model: &mut Model) {
         let Self {
             transactions,
@@ -40,7 +35,7 @@ impl EguiWindows {
             .open(actor_roles)
             .vscroll(true)
             .show(ctx, |ui| {
-                actor_roles::actor_roles_ui(ui, &mut model.actor_roles)
+                actor_roles::actor_roles_ui(ui, &model.transactions, &mut model.actor_roles)
             });
     }
 }

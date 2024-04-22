@@ -55,7 +55,7 @@ impl eframe::App for DemosimApp {
             });
         });
 
-        egui::SidePanel::right("right_panel")
+        egui::SidePanel::left("left_panel")
             .resizable(false)
             .default_width(150.0)
             .show(ctx, |ui| {
@@ -68,20 +68,6 @@ impl eframe::App for DemosimApp {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-
-            // ui.horizontal(|ui| {
-            //     ui.label("Write something: ");
-            //     ui.text_edit_singleline(&mut self.label);
-            // });
-            //
-            // ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            // if ui.button("Increment").clicked() {
-            //     self.value += 1.0;
-            // }
-            //
-            // ui.separator();
-
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
