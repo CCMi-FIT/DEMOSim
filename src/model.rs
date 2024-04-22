@@ -144,10 +144,20 @@ impl PartialEq for Transaction {
 }
 impl Eq for Transaction {}
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct Model {
+    pub name: String,
     pub transactions: Vec<Transaction>,
     pub actor_roles: Vec<ActorRole>,
-    pub selected_c_act: CAct,
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self {
+            name: "No name".to_string(),
+            transactions: Vec::new(),
+            actor_roles: Vec::new(),
+        }
+    }
 }
 

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::model::Model;
 use crate::persistence::save_model;
 use crate::windows::EguiWindows;
@@ -33,8 +34,6 @@ impl eframe::App for DemosimApp {
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-
             egui::menu::bar(ui, |ui| {
                 // NOTE: no File->Quit on web pages!
                 let is_web = cfg!(target_arch = "wasm32");
@@ -50,7 +49,6 @@ impl eframe::App for DemosimApp {
                     });
                     ui.add_space(16.0);
                 }
-
                 egui::widgets::global_dark_light_mode_buttons(ui);
             });
         });
@@ -59,6 +57,7 @@ impl eframe::App for DemosimApp {
             .resizable(false)
             .default_width(150.0)
             .show(ctx, |ui| {
+                ui.add_space(10.0);
                 if ui.button("Actor Roles").clicked() {
                     self.egui_windows.actor_roles = true;
                 }
@@ -68,6 +67,11 @@ impl eframe::App for DemosimApp {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.style_mut().override_text_style = Some(egui::TextStyle::Heading);
+                ui.add(egui::TextEdit::singleline(&mut self.model.name));
+            });
+            // ui.heading(self.model.name.clone());
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);

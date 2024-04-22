@@ -36,7 +36,7 @@ mod desktop_persistence {
     use crate::model::Model;
 
     pub fn save_model(model: &Model) -> std::io::Result<()> {
-        let file_path = "model.json";
+        let file_path = format!("{}.json", model.name);
         let json = serde_json::to_string_pretty(model)?;
         let mut file = File::create(file_path)?;
         file.write_all(json.as_bytes())?;
