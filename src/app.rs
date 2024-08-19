@@ -1,4 +1,4 @@
-use crate::model::Model;
+use crate::model::{Model, PerformerId};
 use crate::persistence::save_model;
 use crate::windows::EguiWindows;
 
@@ -8,6 +8,7 @@ use crate::windows::EguiWindows;
 pub struct DemosimApp {
     model: Model,
     egui_windows: EguiWindows,
+    focused_performer_id: Option<PerformerId>,
 }
 
 impl DemosimApp {
@@ -56,14 +57,35 @@ impl eframe::App for DemosimApp {
 
         egui::SidePanel::left("left_panel")
             .resizable(false)
-            .default_width(150.0)
+            .default_width(1000.0)
             .show(ctx, |ui| {
+                ui.add_space(10.0);
+                ui.label("Model");
                 ui.add_space(10.0);
                 if ui.button("Actor Roles").clicked() {
                     self.egui_windows.actor_roles = true;
                 }
                 if ui.button("Transactions").clicked() {
                     self.egui_windows.transactions = true;
+                }
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+                ui.label("Implementation");
+                ui.add_space(10.0);
+                if ui.button("Performers").clicked() {
+                    self.egui_windows.performers = true;
+                }
+                if ui.button("ADT").clicked() {
+                    self.egui_windows.adt = true;
+                }
+                ui.add_space(10.0);
+                ui.separator();
+                ui.add_space(10.0);
+                ui.label("Execution");
+                ui.add_space(10.0);
+                if ui.button("Performers Dashboard").clicked() {
+                    self.egui_windows.performers_dashboard = true;
                 }
             });
 
@@ -79,7 +101,7 @@ impl eframe::App for DemosimApp {
             });
         });
 
-        self.egui_windows.windows(ctx, &mut self.model);
+        self.egui_windows.windows(ctx, &mut self.model, &mut self.focused_performer_id);
     }
 }
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Formatter;
 use uuid::Uuid;
 use strum_macros::EnumIter;
@@ -92,6 +93,7 @@ pub fn all_c_facts() -> Vec<CFact> {
     CFact::iter().collect()
 }
 
+
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ActorRoleId(Uuid);
 
@@ -165,19 +167,98 @@ impl PartialEq for Transaction {
 }
 impl Eq for Transaction {}
 
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PerformerId(Uuid);
+
+impl std::fmt::Display for PerformerId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Performer {
+    pub id: PerformerId,
+    pub name: String,
+}
+
+impl Default for Performer {
+    fn default() -> Self {
+        Performer {
+            id: PerformerId(Uuid::new_v4()),
+            name: "".to_string(),
+        }
+    }
+}
+
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, EnumIter)]
+pub enum AdtOption {
+    Authorisation,
+    Delegation,
+}
+
+impl AdtOption {
+    pub fn from_str(input: &str) -> Option<AdtOption> {
+        match input {
+            "A" => Some(AdtOption::Authorisation),
+            "D" => Some(AdtOption::Delegation),
+            _ => None,
+        }
+    }
+}
+
+impl Default for AdtOption {
+    fn default() -> Self {
+        AdtOption::Authorisation
+    }
+}
+
+impl std::fmt::Display for AdtOption {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        use AdtOption::*;
+        match self {
+            Authorisation => write!(f, "A"),
+            Delegation => write!(f, "D"),
+        }
+    }
+}
+
+pub fn all_adt_options() -> Vec<AdtOption> {
+    AdtOption::iter().collect()
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Default, PartialEq)]
+pub struct Adt { // Authorisation Delegation Table
+    pub mappings: HashMap<(TransactionId, PerformerId), AdtOption>
+}
+
+impl Adt {
+    pub fn is_mapped(&self, t_id: &TransactionId) -> bool {
+        self.mappings.keys().find(|(t_id1, _)| t_id1 == t_id).is_some()
+    }
+}
+
+
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct Model {
     pub name: String,
-    pub transactions: Vec<Transaction>,
     pub actor_roles: Vec<ActorRole>,
+    pub transactions: Vec<Transaction>,
+    pub performers: Vec<Performer>,
+    pub adt: Adt,
 }
 
 impl Default for Model {
     fn default() -> Self {
         Self {
             name: "No name".to_string(),
-            transactions: Vec::new(),
             actor_roles: Vec::new(),
+            transactions: Vec::new(),
+            performers: Vec::new(),
+            adt: Adt::default(),
         }
     }
 }
