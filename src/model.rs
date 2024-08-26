@@ -169,9 +169,9 @@ impl Eq for Transaction {}
 
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PerformerId(Uuid);
+pub struct SubjectId(Uuid);
 
-impl std::fmt::Display for PerformerId {
+impl std::fmt::Display for SubjectId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -179,15 +179,15 @@ impl std::fmt::Display for PerformerId {
 
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Performer {
-    pub id: PerformerId,
+pub struct Subject {
+    pub id: SubjectId,
     pub name: String,
 }
 
-impl Default for Performer {
+impl Default for Subject {
     fn default() -> Self {
-        Performer {
-            id: PerformerId(Uuid::new_v4()),
+        Subject {
+            id: SubjectId(Uuid::new_v4()),
             name: "".to_string(),
         }
     }
@@ -232,12 +232,17 @@ pub fn all_adt_options() -> Vec<AdtOption> {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Default, PartialEq)]
 pub struct Adt { // Authorisation Delegation Table
-    pub mappings: HashMap<(TransactionId, PerformerId), AdtOption>
+    pub mappings: HashMap<(ActorRoleId, SubjectId), AdtOption>
 }
 
 impl Adt {
-    pub fn is_mapped(&self, t_id: &TransactionId) -> bool {
-        self.mappings.keys().find(|(t_id1, _)| t_id1 == t_id).is_some()
+    pub fn is_mapped(&self, ar_id: &ActorRoleId) -> bool {
+        self.mappings.keys().find(|(ar_id1, _)| ar_id1 == ar_id).is_some()
+    }
+    pub fn get_roles_of_subject(&self, subject: &Subject) -> Vec<&ActorRoleId> {
+        self.mappings.iter()
+            .filter_map(|((actor_role_id, subject_id), _)| if *subject_id == subject.id { Some(actor_role_id) } else { None })
+            .collect()
     }
 }
 
@@ -247,7 +252,7 @@ pub struct Model {
     pub name: String,
     pub actor_roles: Vec<ActorRole>,
     pub transactions: Vec<Transaction>,
-    pub performers: Vec<Performer>,
+    pub subjects: Vec<Subject>,
     pub adt: Adt,
 }
 
@@ -257,8 +262,29 @@ impl Default for Model {
             name: "No name".to_string(),
             actor_roles: Vec::new(),
             transactions: Vec::new(),
-            performers: Vec::new(),
+            subjects: Vec::new(),
             adt: Adt::default(),
+        }
+    }
+}
+
+impl Model {
+    pub fn get_actor_role(&self, ar_id: &ActorRoleId) -> &ActorRole {
+        self.actor_roles.iter().find(|ar| ar.id == *ar_id).unwrap()
+    }
+
+    fn can_start_transaction(&self, subject: &Subject) -> bool {
+        //A subject can start a transaction iff he is not an executor of another one
+        let roles_ids = self.adt.get_roles_of_subject(subject);
+        self.transactions.iter().find(|t| roles_ids.contains(&&t.executor_id)) == None
+    }
+
+    pub fn startable_transactions(&self, subject: &Subject) -> Vec<&Transaction> {
+        let roles_ids = self.adt.get_roles_of_subject(subject);
+        if !self.can_start_transaction(subject) {
+            Vec::new()
+        } else {
+            self.transactions.iter().filter(|t| roles_ids.contains(&&t.initiator_id)).collect()
         }
     }
 }

@@ -1,8 +1,8 @@
 use eframe::epaint::Color32;
 use egui::{RichText, Vec2};
-use crate::model::Performer;
+use crate::model::Subject;
 
-pub fn performers_ui(ui: &mut egui::Ui, performers: &mut Vec<Performer>) {
+pub fn subjects_ui(ui: &mut egui::Ui, subjects: &mut Vec<Subject>) {
     let mut to_delete = Vec::new();
     egui::Grid::new("Subjects")
         .striped(true)
@@ -12,8 +12,8 @@ pub fn performers_ui(ui: &mut egui::Ui, performers: &mut Vec<Performer>) {
             ui.strong("Name");
             ui.end_row();
 
-            for (index, performer) in performers.iter_mut().enumerate() {
-                // let can_delete = !transactions.iter().any(|tr| tr.initiator_id == performer.id || tr.executor_id == performer.id);
+            for (index, subject) in subjects.iter_mut().enumerate() {
+                // let can_delete = !transactions.iter().any(|tr| tr.initiator_id == subject.id || tr.executor_id == subject.id);
                 let can_delete = true;
                 ui.add_enabled_ui(can_delete, |ui| {
                     if ui.button(RichText::new("❌").color(Color32::RED))
@@ -22,15 +22,15 @@ pub fn performers_ui(ui: &mut egui::Ui, performers: &mut Vec<Performer>) {
                             to_delete.push(index);
                         }
                 });
-                ui.add(egui::TextEdit::singleline(&mut performer.name).min_size(Vec2 { x: 200.0, y: 20.0 }));
+                ui.add(egui::TextEdit::singleline(&mut subject.name).min_size(Vec2 { x: 200.0, y: 20.0 }));
                 ui.end_row();
             }
         });
     for index in to_delete.into_iter().rev() {
-        performers.remove(index);
+        subjects.remove(index);
     }
     ui.add_space(16.0);
     if ui.button(RichText::new("➕").color(Color32::GREEN)).clicked() {
-        performers.push(Performer::default());
+        subjects.push(Subject::default());
     }
 }

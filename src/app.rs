@@ -1,4 +1,4 @@
-use crate::model::{Model, PerformerId};
+use crate::model::{Model, SubjectId};
 use crate::persistence::save_model;
 use crate::windows::EguiWindows;
 
@@ -8,7 +8,7 @@ use crate::windows::EguiWindows;
 pub struct DemosimApp {
     model: Model,
     egui_windows: EguiWindows,
-    focused_performer_id: Option<PerformerId>,
+    focused_subject_id: Option<SubjectId>,
 }
 
 impl DemosimApp {
@@ -73,8 +73,8 @@ impl eframe::App for DemosimApp {
                 ui.add_space(10.0);
                 ui.label("Implementation");
                 ui.add_space(10.0);
-                if ui.button("Performers").clicked() {
-                    self.egui_windows.performers = true;
+                if ui.button("Subjects").clicked() {
+                    self.egui_windows.subjects = true;
                 }
                 if ui.button("ADT").clicked() {
                     self.egui_windows.adt = true;
@@ -84,8 +84,8 @@ impl eframe::App for DemosimApp {
                 ui.add_space(10.0);
                 ui.label("Execution");
                 ui.add_space(10.0);
-                if ui.button("Performers Dashboard").clicked() {
-                    self.egui_windows.performers_dashboard = true;
+                if ui.button("Subjects Dashboard").clicked() {
+                    self.egui_windows.subjects_dashboard = true;
                 }
             });
 
@@ -101,7 +101,7 @@ impl eframe::App for DemosimApp {
             });
         });
 
-        self.egui_windows.windows(ctx, &mut self.model, &mut self.focused_performer_id);
+        self.egui_windows.windows(ctx, &mut self.model, &mut self.focused_subject_id);
     }
 }
 

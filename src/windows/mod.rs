@@ -1,18 +1,18 @@
-use crate::model::{Model, PerformerId};
+use crate::model::{Model, SubjectId};
 
 mod actor_roles;
 mod transactions;
-mod performers;
+mod subjects;
 mod adt;
-mod performers_dashboard;
+mod subjects_dashboard;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct EguiWindows {
     pub actor_roles: bool,
     pub transactions: bool,
-    pub performers: bool,
+    pub subjects: bool,
     pub adt: bool,
-    pub performers_dashboard: bool,
+    pub subjects_dashboard: bool,
 }
 
 impl Default for EguiWindows {
@@ -20,21 +20,21 @@ impl Default for EguiWindows {
         Self {
             transactions: false,
             actor_roles: false,
-            performers: false,
+            subjects: false,
             adt: false,
-            performers_dashboard: false,
+            subjects_dashboard: false,
         }
     }
 }
 
 impl EguiWindows {
-    pub fn windows(&mut self, ctx: &egui::Context, model: &mut Model, focused_performer_id: &mut Option<PerformerId>) {
+    pub fn windows(&mut self, ctx: &egui::Context, model: &mut Model, focused_subject_id: &mut Option<SubjectId>) {
         let Self {
             actor_roles,
             transactions,
-            performers,
+            subjects,
             adt,
-            performers_dashboard,
+            subjects_dashboard,
         } = self;
 
         egui::Window::new("Actor Roles")
@@ -49,23 +49,23 @@ impl EguiWindows {
             .show(ctx, |ui| {
                 transactions::transactions_ui(ui, &model.actor_roles, &mut model.transactions)
             });
-        egui::Window::new("Performers")
-            .open(performers)
+        egui::Window::new("Subjects")
+            .open(subjects)
             .vscroll(true)
             .show(ctx, |ui| {
-                performers::performers_ui(ui, &mut model.performers)
+                subjects::subjects_ui(ui, &mut model.subjects)
             });
         egui::Window::new("ADT")
             .open(adt)
             .vscroll(true)
             .show(ctx, |ui| {
-                adt::adt_ui(ui, &model.transactions, &model.performers, &mut model.adt)
+                adt::adt_ui(ui, &model.actor_roles, &model.subjects, &mut model.adt)
             });
-        egui::Window::new("Performers Dashboard")
-            .open(performers_dashboard)
+        egui::Window::new("Subjects Dashboard")
+            .open(subjects_dashboard)
             .vscroll(true)
             .show(ctx, |ui| {
-                performers_dashboard::performers_dashboard_ui(ui, focused_performer_id, &model.transactions, &model.performers, &model.adt)
+                subjects_dashboard::subjects_dashboard_ui(ui, &model, focused_subject_id)
             });
     }
 }
