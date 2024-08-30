@@ -1,5 +1,5 @@
 use eframe::epaint::Color32;
-use egui::{RichText, Vec2};
+use egui::RichText;
 use crate::model::{ActorRole, Transaction};
 
 pub fn actor_roles_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, actor_roles: &mut Vec<ActorRole>) {
@@ -21,7 +21,7 @@ pub fn actor_roles_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, actor_
                             to_delete.push(index);
                         }
                 });
-                ui.add(egui::TextEdit::singleline(&mut actor_role.name).min_size(Vec2 { x: 200.0, y: 20.0 }));
+                ui.add(egui::TextEdit::singleline(&mut actor_role.name).min_size([200.0, 20.0 ].into()));
                 ui.end_row();
             }
         });

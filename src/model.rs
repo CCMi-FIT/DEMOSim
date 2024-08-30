@@ -239,9 +239,16 @@ impl Adt {
     pub fn is_mapped(&self, ar_id: &ActorRoleId) -> bool {
         self.mappings.keys().find(|(ar_id1, _)| ar_id1 == ar_id).is_some()
     }
+
     pub fn get_roles_of_subject(&self, subject: &Subject) -> Vec<&ActorRoleId> {
         self.mappings.iter()
             .filter_map(|((actor_role_id, subject_id), _)| if *subject_id == subject.id { Some(actor_role_id) } else { None })
+            .collect()
+    }
+
+    pub fn get_adt_options_for_role(&self, ar_id: &ActorRoleId) -> Vec<(&SubjectId, &AdtOption)> {
+        self.mappings.iter()
+            .filter_map(|((actor_role_id, subject_id), adt_option)| if actor_role_id == ar_id { Some((subject_id, adt_option)) } else { None })
             .collect()
     }
 }
@@ -271,6 +278,14 @@ impl Default for Model {
 impl Model {
     pub fn get_actor_role(&self, ar_id: &ActorRoleId) -> &ActorRole {
         self.actor_roles.iter().find(|ar| ar.id == *ar_id).unwrap()
+    }
+
+    pub fn get_transaction(&self, t_id: &TransactionId) -> &Transaction {
+        self.transactions.iter().find(|t| t.id == *t_id).unwrap()
+    }
+
+    pub fn get_subject(&self, s_id: &SubjectId) -> &Subject {
+        self.subjects.iter().find(|s| s.id == *s_id).unwrap()
     }
 
     fn can_start_transaction(&self, subject: &Subject) -> bool {

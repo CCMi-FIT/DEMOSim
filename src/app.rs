@@ -1,14 +1,25 @@
-use crate::model::{Model, SubjectId};
+use crate::execution::Execution;
+use crate::model::{Model, SubjectId, TransactionId};
 use crate::persistence::save_model;
 use crate::windows::EguiWindows;
+
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(default)] // if we add new fields, give them default values when deserializing old state
+pub struct AppContext {
+    pub focused_subject_id_o: Option<SubjectId>,
+    pub initiated_transaction_id_o: Option<TransactionId>,
+    pub requested_product: String,
+    pub addressee_id_o: Option<SubjectId>,
+}
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct DemosimApp {
     model: Model,
+    execution: Execution,
     egui_windows: EguiWindows,
-    focused_subject_id: Option<SubjectId>,
+    app_context: AppContext,
 }
 
 impl DemosimApp {
@@ -87,6 +98,9 @@ impl eframe::App for DemosimApp {
                 if ui.button("Subjects Dashboard").clicked() {
                     self.egui_windows.subjects_dashboard = true;
                 }
+                if ui.button("Instances of Transactions").clicked() {
+                    self.egui_windows.transactions_instances = true;
+                }
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -101,7 +115,7 @@ impl eframe::App for DemosimApp {
             });
         });
 
-        self.egui_windows.windows(ctx, &mut self.model, &mut self.focused_subject_id);
+        self.egui_windows.windows(ctx, &mut self.app_context, &mut self.model, &mut self.execution);
     }
 }
 
