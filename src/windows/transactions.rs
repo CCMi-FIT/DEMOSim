@@ -78,11 +78,6 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
             let available_executors: Vec<&ActorRole> = actor_roles.iter()
                 .filter(|aar| !used_executors.contains(&aar.id))
                 .collect();
-            // let available_executors: Vec<&ActorRole> =
-            //     available_executors_ids.into_iter()
-            //         .map(|ar_id| actor_roles.into_iter().find(|ar| ar.id == *ar_id))
-            //         .collect();
-
             let transactions_cloned = transactions.to_owned();
             for (t_index, mut transaction) in transactions.iter_mut().enumerate() {
                 let initiator: Option<ActorRole> = actor_roles.iter().find(|ar| ar.id == transaction.initiator_id).cloned();
@@ -95,9 +90,6 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                         to_delete.push(t_index);
                     }
                 });
-                // if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
-                //     to_delete.push(t_index);
-                // }
                 ui.add(egui::TextEdit::singleline(&mut transaction.t_id).min_size([50.0, 20.0].into()));
                 ui.add(egui::TextEdit::singleline(&mut transaction.name).min_size([200.0, 20.0].into()));
                 ui.add(egui::TextEdit::singleline(&mut transaction.product).min_size([200.0, 20.0].into()));

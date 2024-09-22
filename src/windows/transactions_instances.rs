@@ -1,8 +1,9 @@
 use egui::{Color32, RichText};
-use crate::execution::TransactionInstance;
-use crate::model::Model;
+use crate::app::AppContext;
 
-pub fn view(ui: &mut egui::Ui, model: &Model, transactions_instances: &mut Vec<TransactionInstance>) {
+pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
+    let model = &app_context.model;
+    let execution = &mut app_context.execution;
     let mut to_delete = Vec::new();
     egui::Grid::new("Transactions Instances")
         .striped(true)
@@ -13,25 +14,31 @@ pub fn view(ui: &mut egui::Ui, model: &Model, transactions_instances: &mut Vec<T
             ui.strong("Product Instance");
             ui.strong("Initiator Subject");
             ui.strong("Executor Subject");
-            ui.strong(" ");
+            // ui.strong("Last Fact");
             ui.end_row();
-            for (index, t_i) in transactions_instances.iter_mut().enumerate() {
+            for t_i in execution.transactions_instances.iter_mut() {
                 let transaction = model.get_transaction(&t_i.transaction_id);
-                let initiator_subject = model.get_subject(&t_i.initiator);
-                let executor_subject = model.get_subject(&t_i.executor);
-                ui.label(t_i.id.clone().to_string());
-                ui.label(transaction.t_id.clone());
+                let initiator_subject = model.get_subject(&t_i.initiator_id);
+                let executor_subject = model.get_subject(&t_i.executor_id);
+
+                let id_label = ui.label(t_i.id.clone().to_string());
+                if app_context.hi_transaction_instance_id_o == Some(t_i.id.clone()) {
+                    id_label.highlight();
+                }
+                ui.label(format!("{}: {}", transaction.t_id.clone(), transaction.name.clone()));
                 ui.label(t_i.product_instance.clone());
                 ui.label(initiator_subject.name.clone());
                 ui.label(executor_subject.name.clone());
+                //TODO:
+                // ui.label(execution.get_facts_for_transaction_instance(&t_i.id).clone().last().to_fact().to_string());
                 if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
-                    to_delete.push(index);
+                    to_delete.push(t_i.id.clone());
                 }
                 ui.end_row();
             }
         });
-    for index in to_delete.into_iter().rev() {
-        transactions_instances.remove(index);
+    for transaction_instance_id in to_delete.into_iter().rev() {
+        execution.delete_transaction_instance(&transaction_instance_id);
     }
 }
 

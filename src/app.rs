@@ -1,23 +1,52 @@
-use crate::execution::Execution;
-use crate::model::{Model, SubjectId, TransactionId};
+use std::collections::HashMap;
+use crate::execution::{Execution, TransactionInstanceId};
+use crate::model::{CAct, Model, SubjectId, TransactionId};
 use crate::persistence::save_model;
 use crate::windows::EguiWindows;
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct AppContext {
-    pub focused_subject_id_o: Option<SubjectId>,
+pub struct InitiateTransactionModalContext {
+    pub parent_transaction_instance_id: Option<TransactionInstanceId>,
     pub initiated_transaction_id_o: Option<TransactionId>,
     pub requested_product: String,
     pub addressee_id_o: Option<SubjectId>,
+}
+
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(default)] // if we add new fields, give them default values when deserializing old state
+pub struct SubjectContext {
+    pub focused_subject_id_o: Option<SubjectId>,
+    #[serde(skip)]
+    pub selected_next_c_act: HashMap<TransactionInstanceId, CAct>,
+}
+
+impl SubjectContext {
+    #[inline]
+    pub fn get_selected_next_c_act(&self, transaction_instance_id: &TransactionInstanceId) -> Option<&CAct> {
+        self.selected_next_c_act.get(transaction_instance_id)
+    }
+
+    #[inline]
+    pub fn clear_selected_next_c_act(&mut self) {
+        self.selected_next_c_act.clear();
+    }
+}
+
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(default)] // if we add new fields, give them default values when deserializing old state
+pub struct AppContext {
+    pub model: Model,
+    pub execution: Execution,
+    pub initiate_transaction_modal_context: InitiateTransactionModalContext,
+    pub subject_context: SubjectContext,
+    pub hi_transaction_instance_id_o: Option<TransactionInstanceId>, // highlighted
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct DemosimApp {
-    model: Model,
-    execution: Execution,
     egui_windows: EguiWindows,
     app_context: AppContext,
 }
@@ -52,8 +81,12 @@ impl eframe::App for DemosimApp {
                 let is_web = cfg!(target_arch = "wasm32");
                 if !is_web {
                     ui.menu_button("File", |ui| {
+                        if ui.button("New model").clicked() {
+                            self.app_context = Default::default();
+                            ui.close_menu();
+                        }
                         if ui.button("Save model").clicked() {
-                            save_model(&self.model).unwrap();
+                            save_model(&self.app_context.model).unwrap();
                             ui.close_menu();
                         }
                         if ui.button("Quit").clicked() {
@@ -101,12 +134,15 @@ impl eframe::App for DemosimApp {
                 if ui.button("Instances of Transactions").clicked() {
                     self.egui_windows.transactions_instances = true;
                 }
+                if ui.button("Coord/Prod World").clicked() {
+                    self.egui_windows.c_p_world = true;
+                }
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
                 ui.style_mut().override_text_style = Some(egui::TextStyle::Heading);
-                ui.add(egui::TextEdit::singleline(&mut self.model.name));
+                ui.add(egui::TextEdit::singleline(&mut self.app_context.model.name));
             });
             // ui.heading(self.model.name.clone());
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
@@ -115,7 +151,7 @@ impl eframe::App for DemosimApp {
             });
         });
 
-        self.egui_windows.windows(ctx, &mut self.app_context, &mut self.model, &mut self.execution);
+        self.egui_windows.windows(ctx, &mut self.app_context);
     }
 }
 

@@ -19,6 +19,25 @@ pub enum CAct {
     RevokeReject,
 }
 
+impl CAct {
+    pub fn to_fact(&self) -> CFact {
+        use CAct::*;
+        match self {
+            Request =>  CFact::Requested,
+            Promise => CFact::Promised,
+            Decline => CFact::Declined,
+            Declare => CFact::Declared,
+            Accept => CFact::Accepted,
+            Reject => CFact::Rejected,
+            RevokeRequest => CFact::RequestRevoked,
+            RevokePromise => CFact::PromiseRevoked,
+            RevokeDecline => CFact::DeclineRevoked,
+            RevokeAccept => CFact::AcceptRevoked,
+            RevokeReject => CFact::RejectRevoked,
+        }
+    }
+}
+
 impl Default for CAct {
     fn default() -> Self {
         Self::Request
@@ -46,6 +65,23 @@ impl std::fmt::Display for CAct {
 
 pub fn all_c_acts() -> Vec<CAct> {
     CAct::iter().collect()
+}
+
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq)]
+pub enum CPAct {
+    CAct(CAct),
+    PAct,
+}
+
+impl std::fmt::Display for CPAct {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        use CPAct::*;
+        match self {
+            CAct(c) => write!(f, "{}", c),
+            PAct => write!(f, "P"),
+        }
+    }
 }
 
 
@@ -93,6 +129,38 @@ pub fn all_c_facts() -> Vec<CFact> {
     CFact::iter().collect()
 }
 
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq)]
+pub enum CPFact {
+    CFact(CFact),
+    PFact,
+}
+
+impl CPFact {
+    pub fn next_c_acts(&self) -> Vec<CAct> {
+        use CFact::*;
+        use CAct::*;
+        match self {
+            CPFact::PFact => vec![Declare],
+            CPFact::CFact(c_fact) => match c_fact {
+                Requested => vec![Promise, Decline],
+                Declared => vec![Accept, Reject],
+                Rejected => vec![Declare],
+                _ => vec![],
+            },
+        }
+    }
+}
+
+impl std::fmt::Display for CPFact {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        use CPFact::*;
+        match self {
+            CFact(c) => write!(f, "{}", c),
+            PFact => write!(f, "P"),
+        }
+    }
+}
+
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ActorRoleId(Uuid);
@@ -128,7 +196,7 @@ impl std::fmt::Display for TransactionId {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
 pub struct Impediment {
     pub impeded_c_act: CAct,
     pub impeding_transaction_id: TransactionId,
@@ -288,19 +356,19 @@ impl Model {
         self.subjects.iter().find(|s| s.id == *s_id).unwrap()
     }
 
-    fn can_start_transaction(&self, subject: &Subject) -> bool {
-        //A subject can start a transaction iff he is not an executor of another one
-        let roles_ids = self.adt.get_roles_of_subject(subject);
-        self.transactions.iter().find(|t| roles_ids.contains(&&t.executor_id)) == None
+    pub fn get_initiator_subjects_ids(&self, t_id: &TransactionId) -> Vec<SubjectId> {
+        let t = self.get_transaction(t_id);
+        self.subjects.iter().filter_map(|s| {
+            let roles = self.adt.get_roles_of_subject(s);
+            if roles.contains(&&t.initiator_id) { Some(s.id.clone()) } else { None }
+        }).collect()
     }
 
     pub fn startable_transactions(&self, subject: &Subject) -> Vec<&Transaction> {
         let roles_ids = self.adt.get_roles_of_subject(subject);
-        if !self.can_start_transaction(subject) {
-            Vec::new()
-        } else {
-            self.transactions.iter().filter(|t| roles_ids.contains(&&t.initiator_id)).collect()
-        }
+        let all_impediments: Vec<Impediment> = self.transactions.iter().flat_map(|t| t.impediments.clone()).collect();
+        // Transactions that are impeding other ones cannot be started directly, but only in context of the impeded ones
+        self.transactions.iter().filter(|t| roles_ids.contains(&&t.initiator_id) && all_impediments.iter().find(|i| i.impeding_transaction_id == t.id).is_none()).collect()
     }
 }
 
