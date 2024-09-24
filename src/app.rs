@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::execution::{Execution, TransactionInstanceId};
-use crate::model::{CAct, Model, SubjectId, TransactionId};
+use crate::model::{CPAct, Model, SubjectId, TransactionId};
 use crate::persistence::{load_model, save_model};
 use crate::windows::EguiWindows;
 
@@ -18,18 +18,18 @@ pub struct InitiateTransactionModalContext {
 pub struct SubjectContext {
     pub focused_subject_id_o: Option<SubjectId>,
     #[serde(skip)]
-    pub selected_next_c_act: HashMap<TransactionInstanceId, CAct>,
+    pub selected_next_act: HashMap<TransactionInstanceId, CPAct>,
 }
 
 impl SubjectContext {
     #[inline]
-    pub fn get_selected_next_c_act(&self, transaction_instance_id: &TransactionInstanceId) -> Option<&CAct> {
-        self.selected_next_c_act.get(transaction_instance_id)
+    pub fn get_selected_next_act(&self, transaction_instance_id: &TransactionInstanceId) -> Option<&CPAct> {
+        self.selected_next_act.get(transaction_instance_id)
     }
 
     #[inline]
-    pub fn clear_selected_next_c_act(&mut self) {
-        self.selected_next_c_act.clear();
+    pub fn clear_selected_next_act(&mut self) {
+        self.selected_next_act.clear();
     }
 }
 

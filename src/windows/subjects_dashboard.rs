@@ -1,7 +1,7 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
 use crate::execution::{Execution, TransactionInstance, TransactionInstanceId};
-use crate::model::{CFact, CPAct, CPFact, Impediment, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::{CPFact, Impediment, Subject, SubjectId, Transaction, TransactionId};
 
 #[inline]
 pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
@@ -73,7 +73,7 @@ fn agenda_ui<F>(
     let execution = &mut app_context.execution;
     let subject_context = &mut app_context.subject_context;
     let agenda = execution.agenda_for(subject_id).clone();
-    subject_context.clear_selected_next_c_act();
+    subject_context.clear_selected_next_act();
     egui::Grid::new("Subject's agenda")
         .striped(true)
         .spacing(&[10.0, 10.0])
@@ -90,59 +90,48 @@ fn agenda_ui<F>(
                 let transaction_instance = execution.get_transaction_instance(&agenda_item.transaction_instance_id).clone();
                 let transaction = model.get_transaction(&transaction_instance.transaction_id);
                 let performer = model.get_subject(&agenda_item.performer_id);
+                let next_acts = agenda_item.fact.next_acts();
+                let mut selected_next_act = subject_context.get_selected_next_act(&transaction_instance.id)
+                    .unwrap_or(&next_acts[0].clone()).to_owned();
+                let impediments = &model.get_transaction(&transaction_instance.transaction_id).impediments;
+                let impeding_transactions_instances: Vec<(&Impediment, &TransactionInstance)> =
+                    impediments.iter()
+                        .filter_map(|imp|
+                            execution.get_instances_of_transaction(&imp.impeding_transaction_id)
+                                .into_iter().find(|t_i| t_i.parent_transaction_instance_id == Some(transaction_instance.id.clone()))
+                                .map(|t_i| (imp, t_i))
+                        )
+                        .collect();
+                let commit_enabled = impediments.is_empty() || impediments.iter().all(|imp| {
+                    imp.impeded_act != selected_next_act ||
+                        impeding_transactions_instances.iter().find(
+                            |(imp1, t_i)| **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
+                        ).is_some()
+                });
+
                 ui.label(agenda_item.timestamp.to_string());
                 ui.label(format!("{}: {}", transaction.t_id.to_string(), transaction.name.clone()));
                 ui.label(performer.name.clone());
                 ui.label(agenda_item.fact.to_string());
                 ui.label(transaction_instance.product_instance.clone());
-                match &agenda_item.fact {
-                    CPFact::CFact(CFact::Promised) => {
-                        if ui.button("Execute").clicked() {
-                            execution.process_new_fact(model, agenda_item.transaction_instance_id.clone(), subject_id.clone(), CPFact::PFact);
-                            execution.remove_agenda_item(agenda_item);
+                egui::ComboBox::from_id_source(format!("Act for Fact {}", transaction_instance.id))
+                    .selected_text(selected_next_act.to_string())
+                    .show_ui(ui, |ui| {
+                        ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
+                        ui.set_min_width(60.0);
+                        for act in next_acts {
+                            ui.selectable_value(&mut selected_next_act, act.clone(), act.to_string());
                         }
-                    },
-                    CPFact::PFact | CPFact::CFact(_) => {
-                        let next_c_acts = agenda_item.fact.next_c_acts();
-                        let mut selected_next_c_act = subject_context.get_selected_next_c_act(&transaction_instance.id)
-                            .unwrap_or(&next_c_acts[0].clone()).to_owned();
-                        egui::ComboBox::from_id_source(format!("Act for CFact {}", transaction_instance.id))
-                            .selected_text(selected_next_c_act.to_string())
-                            .show_ui(ui, |ui| {
-                                ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                                ui.set_min_width(60.0);
-                                for act in next_c_acts {
-                                    ui.selectable_value(&mut selected_next_c_act, act.clone(), act.to_string());
-                                }
-                            });
-
-                        let impediments = &model.get_transaction(&transaction_instance.transaction_id).impediments;
-                        let impeding_transactions_instances: Vec<(&Impediment, &TransactionInstance)> =
-                            impediments.iter()
-                                .filter_map(|imp|
-                                    execution.get_instances_of_transaction(&imp.impeding_transaction_id)
-                                        .into_iter().find(|t_i| t_i.parent_transaction_instance_id == Some(transaction_instance.id.clone()))
-                                        .map(|t_i| (imp, t_i))
-                                    )
-                                .collect();
-
-                        let commit_enabled = impediments.is_empty() || impediments.iter().all(|imp| {
-                            imp.impeded_act != CPAct::CAct(selected_next_c_act.clone()) ||
-                            impeding_transactions_instances.iter().find(
-                                |(imp1, t_i)| **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
-                            ).is_some()
-                        });
-                        ui.add_enabled_ui(commit_enabled, |ui| {
-                            if ui.button("Commit")
-                                .on_disabled_hover_text("Act is impeded")
-                                .clicked() {
-                                execution.process_new_fact(model, transaction_instance.id.clone(), subject_id.clone(), CPFact::CFact(selected_next_c_act.to_fact()));
-                                execution.remove_agenda_item(agenda_item);
-                            }
-                        });
-                        subject_context.selected_next_c_act.insert(transaction_instance.id.clone(), selected_next_c_act);
-                    },
-                };
+                    });
+                ui.add_enabled_ui(commit_enabled, |ui| {
+                    if ui.button("Commit")
+                        .on_disabled_hover_text("Act is impeded")
+                        .clicked() {
+                        execution.process_new_fact(model, transaction_instance.id.clone(), subject_id.clone(), selected_next_act.to_fact());
+                        execution.remove_agenda_item(agenda_item);
+                    }
+                });
+                subject_context.selected_next_act.insert(transaction_instance.id.clone(), selected_next_act);
                 let startable_subtransactions = Execution::startable_subtransactions(model, &transaction_instance, subject_id);
                 initiate_transactions_ui(ui, &startable_subtransactions, Some(transaction_instance.id), modal_opened, &mut open_modal);
                 ui.end_row();

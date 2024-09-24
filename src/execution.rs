@@ -190,7 +190,7 @@ impl Execution {
                 self.c_p_world.push(new_c_p_world_item);
                 if *c_fact == Promised {
                     self.agendas.push((performer_id, agenda_item));
-                } else if !fact.next_c_acts().is_empty() {
+                } else if !fact.next_acts().is_empty() {
                     self.agendas.push((addressee_id, agenda_item));
                 }
             },

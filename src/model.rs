@@ -90,6 +90,15 @@ impl std::fmt::Display for CPAct {
     }
 }
 
+impl CPAct {
+    pub fn to_fact(&self) -> CPFact {
+        match self {
+            CPAct::CAct(c_act) => CPFact::CFact(c_act.to_fact()),
+            CPAct::PAct => CPFact::PFact,
+        }
+    }
+}
+
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, EnumIter)]
 pub enum CFact {
@@ -142,15 +151,16 @@ pub enum CPFact {
 }
 
 impl CPFact {
-    pub fn next_c_acts(&self) -> Vec<CAct> {
+    pub fn next_acts(&self) -> Vec<CPAct> {
         use CFact::*;
         use CAct::*;
         match self {
-            CPFact::PFact => vec![Declare],
+            CPFact::PFact => vec![CPAct::CAct(Declare)],
             CPFact::CFact(c_fact) => match c_fact {
-                Requested => vec![Promise, Decline],
-                Declared => vec![Accept, Reject],
-                Rejected => vec![Declare],
+                Requested => vec![CPAct::CAct(Promise), CPAct::CAct(Decline)],
+                Promised => vec![CPAct::PAct],
+                Declared => vec![CPAct::CAct(Accept), CPAct::CAct(Reject)],
+                Rejected => vec![CPAct::CAct(Declare)],
                 _ => vec![],
             },
         }
