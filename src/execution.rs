@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Formatter;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -209,7 +210,7 @@ impl Execution {
     }
 
     pub fn startable_subtransactions<'a>(model: &'a Model, transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
-       let impeding_transactions: Vec<&Transaction> = model
+       let impeding_transactions: HashSet<&Transaction> = model
            .get_transaction(&transaction_instance.transaction_id)
            .impediments.iter().map(|i| &i.impeding_transaction_id)
            .map(|t_i| model.get_transaction(t_i))

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Formatter;
+use std::hash::{Hash, Hasher};
 use uuid::Uuid;
 use strum_macros::EnumIter;
 use strum::IntoEnumIterator;
@@ -214,6 +215,19 @@ pub struct Transaction {
     pub impediments: Vec<Impediment>,
 }
 
+impl PartialEq for Transaction {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Transaction {}
+
+impl Hash for Transaction {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
+    }
+}
+
 impl Transaction {
     pub fn new() -> Self {
         Self {
@@ -227,13 +241,6 @@ impl Transaction {
         }
     }
 }
-
-impl PartialEq for Transaction {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for Transaction {}
 
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]

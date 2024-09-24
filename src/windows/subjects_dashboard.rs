@@ -125,7 +125,6 @@ fn agenda_ui<F>(
                                     )
                                 .collect();
                         println!("{:#?}", impeding_transactions_instances);
-                        //TODO: Overit, ze je mozny Commit: pro kazdy impediment musi existovat prislusna instance transakce a soucasne musi v C/P world existovat prislusny Fact
                         let commit_enabled = impediments.is_empty() || impediments.iter().all(|imp| {
                             imp.impeded_c_act != selected_next_c_act ||
                             impeding_transactions_instances.iter().find(
