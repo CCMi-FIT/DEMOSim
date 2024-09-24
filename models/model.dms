@@ -1,0 +1,65 @@
+(
+    name: "Example1",
+    actor_roles: [
+        (
+            id: ("3d44264c-90ce-4d7a-b1c0-3cf9063b41a1"),
+            name: "client role",
+        ),
+        (
+            id: ("9d0d3ec7-d63f-4f24-9031-9e74f5bcab12"),
+            name: "sales performer",
+        ),
+        (
+            id: ("a8a3e4c6-9894-4b4b-9ce3-7ece25d73295"),
+            name: "payer",
+        ),
+    ],
+    transactions: [
+        (
+            id: ("7b799af4-7f9a-44fe-a747-3a9047fd163b"),
+            t_id: "T1",
+            name: "sales",
+            product: "sales is completed",
+            initiator_id: ("3d44264c-90ce-4d7a-b1c0-3cf9063b41a1"),
+            executor_id: ("9d0d3ec7-d63f-4f24-9031-9e74f5bcab12"),
+            impediments: [
+                (
+                    impeded_c_act: Promise,
+                    impeding_transaction_id: ("61d9f5e8-3635-4757-a0b8-10eee0f6d729"),
+                    impeding_c_fact: Promised,
+                ),
+                (
+                    impeded_c_act: Declare,
+                    impeding_transaction_id: ("61d9f5e8-3635-4757-a0b8-10eee0f6d729"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("61d9f5e8-3635-4757-a0b8-10eee0f6d729"),
+            t_id: "T2",
+            name: "payment",
+            product: "payment is done",
+            initiator_id: ("9d0d3ec7-d63f-4f24-9031-9e74f5bcab12"),
+            executor_id: ("a8a3e4c6-9894-4b4b-9ce3-7ece25d73295"),
+            impediments: [],
+        ),
+    ],
+    subjects: [
+        (
+            id: ("74b14a87-6667-425d-a5d6-92786f30d612"),
+            name: "client",
+        ),
+        (
+            id: ("43d7fd38-bdc6-49e6-9de1-94df0a1ae253"),
+            name: "salesman",
+        ),
+    ],
+    adt: (
+        mappings: {
+            (("a8a3e4c6-9894-4b4b-9ce3-7ece25d73295"), ("74b14a87-6667-425d-a5d6-92786f30d612")): Authorisation,
+            (("9d0d3ec7-d63f-4f24-9031-9e74f5bcab12"), ("43d7fd38-bdc6-49e6-9de1-94df0a1ae253")): Authorisation,
+            (("3d44264c-90ce-4d7a-b1c0-3cf9063b41a1"), ("74b14a87-6667-425d-a5d6-92786f30d612")): Authorisation,
+        },
+    ),
+)

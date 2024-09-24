@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::execution::{Execution, TransactionInstanceId};
 use crate::model::{CAct, Model, SubjectId, TransactionId};
-use crate::persistence::save_model;
+use crate::persistence::{load_model, save_model};
 use crate::windows::EguiWindows;
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -85,7 +85,13 @@ impl eframe::App for DemosimApp {
                             self.app_context = Default::default();
                             ui.close_menu();
                         }
-                        if ui.button("Save model").clicked() {
+                        if ui.button("Load model...").clicked() {
+                            if let Some(model) = load_model().unwrap() {
+                                self.app_context.model = model;
+                            }
+                            ui.close_menu();
+                        }
+                        if ui.button("Save model...").clicked() {
                             save_model(&self.app_context.model).unwrap();
                             ui.close_menu();
                         }
