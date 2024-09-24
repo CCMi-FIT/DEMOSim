@@ -68,6 +68,11 @@ pub fn all_c_acts() -> Vec<CAct> {
     CAct::iter().collect()
 }
 
+pub fn all_acts() -> Vec<CPAct> {
+    let mut acts: Vec<CPAct> = all_c_acts().into_iter().map(|c_act| CPAct::CAct(c_act)).collect();
+    acts.insert(2, CPAct::PAct);
+    acts
+}
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq)]
 pub enum CPAct {
@@ -80,7 +85,7 @@ impl std::fmt::Display for CPAct {
         use CPAct::*;
         match self {
             CAct(c) => write!(f, "{}", c),
-            PAct => write!(f, "P"),
+            PAct => write!(f, "Execute"),
         }
     }
 }
@@ -157,7 +162,7 @@ impl std::fmt::Display for CPFact {
         use CPFact::*;
         match self {
             CFact(c) => write!(f, "{}", c),
-            PFact => write!(f, "P"),
+            PFact => write!(f, "Executed"),
         }
     }
 }
@@ -199,7 +204,7 @@ impl std::fmt::Display for TransactionId {
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
 pub struct Impediment {
-    pub impeded_c_act: CAct,
+    pub impeded_act: CPAct,
     pub impeding_transaction_id: TransactionId,
     pub impeding_c_fact: CFact,
 }

@@ -1,7 +1,7 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
 use crate::execution::{Execution, TransactionInstance, TransactionInstanceId};
-use crate::model::{CFact, CPFact, Impediment, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::{CFact, CPAct, CPFact, Impediment, Subject, SubjectId, Transaction, TransactionId};
 
 #[inline]
 pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
@@ -97,7 +97,7 @@ fn agenda_ui<F>(
                 ui.label(transaction_instance.product_instance.clone());
                 match &agenda_item.fact {
                     CPFact::CFact(CFact::Promised) => {
-                        if ui.button("Produce").clicked() {
+                        if ui.button("Execute").clicked() {
                             execution.process_new_fact(model, agenda_item.transaction_instance_id.clone(), subject_id.clone(), CPFact::PFact);
                             execution.remove_agenda_item(agenda_item);
                         }
@@ -127,7 +127,7 @@ fn agenda_ui<F>(
                                 .collect();
 
                         let commit_enabled = impediments.is_empty() || impediments.iter().all(|imp| {
-                            imp.impeded_c_act != selected_next_c_act ||
+                            imp.impeded_act != CPAct::CAct(selected_next_c_act.clone()) ||
                             impeding_transactions_instances.iter().find(
                                 |(imp1, t_i)| **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
                             ).is_some()

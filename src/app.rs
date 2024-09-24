@@ -107,7 +107,7 @@ impl eframe::App for DemosimApp {
 
         egui::SidePanel::left("left_panel")
             .resizable(false)
-            .default_width(1000.0)
+            .exact_width(170.0)
             .show(ctx, |ui| {
                 ui.add_space(10.0);
                 ui.label("Model");

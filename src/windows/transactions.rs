@@ -1,8 +1,8 @@
-use std::collections::{HashSet, HashMap};
 use eframe::epaint::Color32;
 use egui::{RichText, TextWrapMode};
+use std::collections::{HashMap, HashSet};
 
-use crate::model::{ActorRole, all_c_acts, all_c_facts, CAct, CFact, Impediment, Transaction, TransactionId};
+use crate::model::{all_acts, all_c_facts, ActorRole, CAct, CFact, CPAct, Impediment, Transaction, TransactionId};
 
 pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
     let available_transactions: Vec<&Transaction> = transactions.iter().filter(|tr| **tr != *transaction).collect();
@@ -16,13 +16,13 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
                     to_delete.push(imp_index);
                 }
-                egui::ComboBox::from_id_source(format!("{}_{}_{}", transaction.id, "Impediment-CAct", imp_index))
-                    .selected_text(impediment.impeded_c_act.to_string())
+                egui::ComboBox::from_id_source(format!("{}_{}_{}", transaction.id, "Impediment-CPAct", imp_index))
+                    .selected_text(impediment.impeded_act.to_string())
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
                         ui.set_min_width(60.0);
-                        for impeded_c_act in all_c_acts() {
-                            ui.selectable_value(&mut impediment.impeded_c_act, impeded_c_act.to_owned(), impeded_c_act.to_owned().to_string());
+                        for impeded_act in all_acts() {
+                            ui.selectable_value(&mut impediment.impeded_act, impeded_act.to_owned(), impeded_act.to_owned().to_string());
                         }
                     });
                 ui.add_space(5.0);
@@ -48,7 +48,7 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
         }
         if ui.button(RichText::new("➕").color(Color32::GREEN)).clicked() {
             transaction.impediments.push(Impediment {
-                impeded_c_act: CAct::default(),
+                impeded_act: CPAct::CAct(CAct::default()),
                     impeding_transaction_id: available_transactions[0].id.clone(),
                     impeding_c_fact: CFact::default(),
             });
