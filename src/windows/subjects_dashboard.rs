@@ -115,6 +115,7 @@ fn agenda_ui<F>(
                                     ui.selectable_value(&mut selected_next_c_act, act.clone(), act.to_string());
                                 }
                             });
+
                         let impediments = &model.get_transaction(&transaction_instance.transaction_id).impediments;
                         let impeding_transactions_instances: Vec<(&Impediment, &TransactionInstance)> =
                             impediments.iter()
@@ -124,7 +125,7 @@ fn agenda_ui<F>(
                                         .map(|t_i| (imp, t_i))
                                     )
                                 .collect();
-                        println!("{:#?}", impeding_transactions_instances);
+
                         let commit_enabled = impediments.is_empty() || impediments.iter().all(|imp| {
                             imp.impeded_c_act != selected_next_c_act ||
                             impeding_transactions_instances.iter().find(
@@ -132,7 +133,9 @@ fn agenda_ui<F>(
                             ).is_some()
                         });
                         ui.add_enabled_ui(commit_enabled, |ui| {
-                            if ui.button("Commit").clicked() {
+                            if ui.button("Commit")
+                                .on_disabled_hover_text("Act is impeded")
+                                .clicked() {
                                 execution.process_new_fact(model, transaction_instance.id.clone(), subject_id.clone(), CPFact::CFact(selected_next_c_act.to_fact()));
                                 execution.remove_agenda_item(agenda_item);
                             }
