@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fmt::Formatter;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -210,14 +209,15 @@ impl Execution {
     }
 
     pub fn startable_subtransactions<'a>(model: &'a Model, transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
-       let impeding_transactions: HashSet<&Transaction> = model
+       let mut transactions: Vec<&Transaction> = model
            .get_transaction(&transaction_instance.transaction_id)
            .impediments.iter().map(|i| &i.impeding_transaction_id)
            .map(|t_i| model.get_transaction(t_i))
+           .filter(|t| model.get_initiator_subjects_ids(&t.id).contains(&subject_id))
            .collect();
-        impeding_transactions.into_iter().filter(|t| {
-            model.get_initiator_subjects_ids(&t.id).contains(&subject_id)
-        }).collect()
+        transactions.sort();
+        transactions.dedup();
+        transactions
     }
 
     pub fn get_facts_for_transaction_instance(&self, transaction_instance_id: &TransactionInstanceId) -> Vec<&CPWorldItem> {

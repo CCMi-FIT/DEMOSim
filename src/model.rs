@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
@@ -240,6 +241,18 @@ impl Eq for Transaction {}
 impl Hash for Transaction {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state)
+    }
+}
+
+impl PartialOrd for Transaction {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.t_id.partial_cmp(&other.t_id)
+    }
+}
+
+impl Ord for Transaction {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.t_id.cmp(&other.t_id)
     }
 }
 

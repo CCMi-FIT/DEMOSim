@@ -1,7 +1,7 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
 use crate::execution::{Execution, TransactionInstance, TransactionInstanceId};
-use crate::model::{CPFact, Impediment, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::{CPAct, CPFact, Impediment, Model, Subject, SubjectId, Transaction, TransactionId};
 
 #[inline]
 pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
@@ -26,6 +26,26 @@ pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
             }
         });
 }
+
+fn can_commit(model: &Model, execution: &Execution, transaction_instance: &TransactionInstance, act: &CPAct) -> bool {
+    let impediments = &model.get_transaction(&transaction_instance.transaction_id).impediments;
+    let impeding_transactions_instances: Vec<(&Impediment, &TransactionInstance)> =
+        impediments.iter()
+            .filter_map(|imp|
+                execution.get_instances_of_transaction(&imp.impeding_transaction_id)
+                    .into_iter().find(|t_i| t_i.parent_transaction_instance_id == Some(transaction_instance.id.clone()))
+                    .map(|t_i| (imp, t_i))
+            )
+            .collect();
+    let commit_possible = impediments.is_empty() || impediments.iter().all(|imp| {
+        imp.impeded_act != *act ||
+            impeding_transactions_instances.iter().find(
+                |(imp1, t_i)| **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
+            ).is_some()
+    });
+    commit_possible
+}
+
 
 fn initiate_transactions_ui<F>(
     ui: &mut egui::Ui,
@@ -93,21 +113,7 @@ fn agenda_ui<F>(
                 let next_acts = agenda_item.fact.next_acts();
                 let mut selected_next_act = subject_context.get_selected_next_act(&transaction_instance.id)
                     .unwrap_or(&next_acts[0].clone()).to_owned();
-                let impediments = &model.get_transaction(&transaction_instance.transaction_id).impediments;
-                let impeding_transactions_instances: Vec<(&Impediment, &TransactionInstance)> =
-                    impediments.iter()
-                        .filter_map(|imp|
-                            execution.get_instances_of_transaction(&imp.impeding_transaction_id)
-                                .into_iter().find(|t_i| t_i.parent_transaction_instance_id == Some(transaction_instance.id.clone()))
-                                .map(|t_i| (imp, t_i))
-                        )
-                        .collect();
-                let commit_enabled = impediments.is_empty() || impediments.iter().all(|imp| {
-                    imp.impeded_act != selected_next_act ||
-                        impeding_transactions_instances.iter().find(
-                            |(imp1, t_i)| **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
-                        ).is_some()
-                });
+                let commit_enabled = can_commit(model, execution, &transaction_instance, &selected_next_act);
 
                 ui.label(agenda_item.timestamp.to_string());
                 ui.label(format!("{}: {}", transaction.t_id.to_string(), transaction.name.clone()));
