@@ -120,7 +120,7 @@ fn agenda_ui<F>(
                 ui.label(performer.name.clone());
                 ui.label(agenda_item.fact.to_string());
                 ui.label(transaction_instance.product_instance.clone());
-                egui::ComboBox::from_id_source(format!("Act for Fact {}", transaction_instance.id))
+                egui::ComboBox::from_id_salt(format!("Act for Fact {}", transaction_instance.id))
                     .selected_text(selected_next_act.to_string())
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);

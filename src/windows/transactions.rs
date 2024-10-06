@@ -16,7 +16,7 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
                     to_delete.push(imp_index);
                 }
-                egui::ComboBox::from_id_source(format!("{}_{}_{}", transaction.id, "Impediment-CPAct", imp_index))
+                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, "Impediment-CPAct", imp_index))
                     .selected_text(impediment.impeded_act.to_string())
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
@@ -26,7 +26,7 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                         }
                     });
                 ui.add_space(5.0);
-                egui::ComboBox::from_id_source(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-Transaction"))
+                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-Transaction"))
                     .selected_text(transactions_map.get(&impediment.impeding_transaction_id).unwrap_or(&"tr not found".to_string()).to_owned())
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
@@ -35,7 +35,7 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                             ui.selectable_value(&mut impediment.impeding_transaction_id, transaction.id.clone(), transactions_map.get(&transaction.id).unwrap_or(&"tr not found".to_string()));
                         }
                     });
-                egui::ComboBox::from_id_source(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-CFact"))
+                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-CFact"))
                     .selected_text(impediment.impeding_c_fact.to_string())
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
@@ -94,7 +94,7 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                 ui.add(egui::TextEdit::singleline(&mut transaction.name).min_size([200.0, 20.0].into()));
                 ui.add(egui::TextEdit::singleline(&mut transaction.product).min_size([200.0, 20.0].into()));
                 // Initiator actor role combo
-                egui::ComboBox::from_id_source(format!("{}_{}_{}", "Initiator", transaction.id, t_index))
+                egui::ComboBox::from_id_salt(format!("{}_{}_{}", "Initiator", transaction.id, t_index))
                     .selected_text(initiator.unwrap_or_default().name)
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
@@ -104,7 +104,7 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                         }
                     });
                 // Executor actor role combo
-                egui::ComboBox::from_id_source(format!("{}_{}_{}", "Executor", transaction.id, t_index))
+                egui::ComboBox::from_id_salt(format!("{}_{}_{}", "Executor", transaction.id, t_index))
                     .selected_text(executor.unwrap_or_default().name)
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
