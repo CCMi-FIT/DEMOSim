@@ -77,6 +77,13 @@ impl CPWorldItem {
         }
     }
 
+    pub fn get_performer(&self) -> &Subject {
+        use CPWorldItem::*;
+        match self {
+            CWorldItem(c) => &c.performer,
+            PWorldItem(p) => &p.performer,
+        }
+    }
     pub fn to_fact(&self) -> CPFact {
         use CPWorldItem::*;
         match self {

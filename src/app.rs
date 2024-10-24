@@ -35,11 +35,19 @@ impl SubjectContext {
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
+pub struct CPWorldContext {
+    pub transaction_instance_id_filter: String,
+    pub performer_filter: String,
+}
+
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct AppContext {
     pub model: Model,
     pub execution: Execution,
     pub initiate_transaction_modal_context: InitiateTransactionModalContext,
     pub subject_context: SubjectContext,
+    pub c_p_world_context: CPWorldContext,
     pub hi_transaction_instance_id_o: Option<TransactionInstanceId>, // highlighted
 }
 

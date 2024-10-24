@@ -12,6 +12,7 @@ pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
         .show(ui, |ui| {
             ui.strong("Transaction Instance ID");
             ui.strong("Transaction");
+            ui.strong("Parent TI ID");
             ui.strong("Product Instance");
             ui.strong("Initiator Subject");
             ui.strong("Executor Subject");
@@ -34,6 +35,10 @@ pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
                     id_label.highlight();
                 }
                 render_label(ui, format!("{}: {}", transaction.t_id.clone(), transaction.name.clone()));
+                render_label(ui, match &t_i.parent_transaction_instance_id {
+                    None => "--".to_string(),
+                    Some(id) => id.to_string(),
+                });
                 render_label(ui, t_i.product_instance.clone());
                 render_label(ui, initiator_subject.name.clone());
                 render_label(ui, executor_subject.name.clone());

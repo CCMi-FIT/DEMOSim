@@ -33,7 +33,7 @@ pub fn view<F: FnMut()>(ui: &mut egui::Ui, app_context: &mut AppContext, mut clo
             ui.horizontal(|ui| {
                 ui.label("Addressee:");
                 let selected_addressee_o = modal_context.addressee_id_o.clone().map(|s_id| model.get_subject(&s_id));
-                egui::ComboBox::from_id_source(format!("Addressee selection for {}", performer.id))
+                egui::ComboBox::from_id_salt(format!("Addressee selection for {}", performer.id))
                     .selected_text(match selected_addressee_o { Some(selected_addressee) => selected_addressee.name.clone(), None => String::new() })
                     .show_ui(ui, |ui| {
                         ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);

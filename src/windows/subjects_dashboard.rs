@@ -1,7 +1,8 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
 use crate::execution::{Execution, TransactionInstance, TransactionInstanceId};
-use crate::model::{CPAct, CPFact, Impediment, Model, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::{CPAct, CPFact, Impediment, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::CAct::Request;
 
 #[inline]
 pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
@@ -27,20 +28,30 @@ pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
         });
 }
 
-fn can_commit(model: &Model, execution: &Execution, transaction_instance: &TransactionInstance, act: &CPAct) -> bool {
-    let impediments = &model.get_transaction(&transaction_instance.transaction_id).impediments;
+fn can_commit(execution: &Execution, transaction: &Transaction, parent_transaction_id: TransactionInstanceId, act: &CPAct) -> bool {
+    // println!("Transaction Instance: {:?}", transaction_instance_o.and_then(|t_i_1| t_i_1.parent_transaction_instance_id.clone()));
+    let impediments = &transaction.impediments;
+    println!("Impediments for {}: {:?}", transaction.t_id, impediments);
     let impeding_transactions_instances: Vec<(&Impediment, &TransactionInstance)> =
         impediments.iter()
             .filter_map(|imp|
                 execution.get_instances_of_transaction(&imp.impeding_transaction_id)
-                    .into_iter().find(|t_i| t_i.parent_transaction_instance_id == Some(transaction_instance.id.clone()))
+                    .into_iter().find(|t_i| {
+                    println!("Checking {:?}", t_i.id);
+                    // println!("{:?} =?= {:?}", t_i.parent_transaction_instance_id, transaction_instance_o.and_then(|t_i_1| t_i_1.parent_transaction_instance_id.clone()));
+                    t_i.parent_transaction_instance_id == Some(parent_transaction_id.clone())
+                })
                     .map(|t_i| (imp, t_i))
             )
             .collect();
+    println!("Impeding Transaction Instances: {:?}", impeding_transactions_instances.iter().map(|(_, t_i)| t_i.id.to_string()).collect::<Vec<String>>());
     let commit_possible = impediments.is_empty() || impediments.iter().all(|imp| {
         imp.impeded_act != *act ||
             impeding_transactions_instances.iter().find(
-                |(imp1, t_i)| **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
+                |(imp1, t_i)| {
+                    println!("Looking for existence of {:?} on {}", imp.impeding_c_fact, t_i.id);
+                    **imp1 == *imp && execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_some()
+                }
             ).is_some()
     });
     commit_possible
@@ -49,16 +60,21 @@ fn can_commit(model: &Model, execution: &Execution, transaction_instance: &Trans
 
 fn initiate_transactions_ui<F>(
     ui: &mut egui::Ui,
+    execution: &Execution,
     startable_transactions: &Vec<&Transaction>,
-    parent_transaction_instance_id: Option<TransactionInstanceId>,
+    parent_transaction_instance_id_o: Option<TransactionInstanceId>,
     modal_opened: bool,
     open_modal: &mut F,
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
     ui.horizontal(|ui| {
         for s_t in startable_transactions {
-            ui.add_enabled_ui(!modal_opened, |ui| {
+            let enabled = !modal_opened && match &parent_transaction_instance_id_o {
+                None => true,
+                Some(parent_transaction_instance_id) => can_commit(execution, s_t, parent_transaction_instance_id.clone(), &CPAct::CAct(Request)),
+            };
+            ui.add_enabled_ui(enabled, |ui| {
                 if ui.button(format!("Request {}: {}", s_t.t_id, s_t.name))
-                    .clicked() { open_modal(parent_transaction_instance_id.clone(), s_t.id.clone()); }
+                    .clicked() { open_modal(parent_transaction_instance_id_o.clone(), s_t.id.clone()); }
             });
         }
     });
@@ -76,7 +92,7 @@ fn startable_transactions_ui<F>(
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
     let subject: &Subject = app_context.model.subjects.iter().find(|p| p.id == *subject_id).unwrap();
     let startable_transactions = app_context.model.startable_transactions(&subject);
-    initiate_transactions_ui(ui, &startable_transactions, parent_transaction_instance_id, modal_opened, open_modal);
+    initiate_transactions_ui(ui, &app_context.execution, &startable_transactions, parent_transaction_instance_id, modal_opened, open_modal);
     ui.add_space(10.0);
     ui.separator();
 }
@@ -107,13 +123,16 @@ fn agenda_ui<F>(
             ui.end_row();
 
             for agenda_item in &agenda {
+                println!("{:#?}", agenda_item);
                 let transaction_instance = execution.get_transaction_instance(&agenda_item.transaction_instance_id).clone();
+                let transaction_instance_parent = transaction_instance.parent_transaction_instance_id.clone().unwrap_or_else(|| transaction_instance.id.clone());
                 let transaction = model.get_transaction(&transaction_instance.transaction_id);
                 let performer = model.get_subject(&agenda_item.performer_id);
                 let next_acts = agenda_item.fact.next_acts();
                 let mut selected_next_act = subject_context.get_selected_next_act(&transaction_instance.id)
                     .unwrap_or(&next_acts[0].clone()).to_owned();
-                let commit_enabled = can_commit(model, execution, &transaction_instance, &selected_next_act);
+                println!("can_commit for {:?}", transaction_instance.id);
+                let commit_enabled = can_commit(execution, &transaction, transaction_instance_parent, &selected_next_act);
 
                 ui.label(agenda_item.timestamp.to_string());
                 ui.label(format!("{}: {}", transaction.t_id.to_string(), transaction.name.clone()));
@@ -139,7 +158,7 @@ fn agenda_ui<F>(
                 });
                 subject_context.selected_next_act.insert(transaction_instance.id.clone(), selected_next_act);
                 let startable_subtransactions = Execution::startable_subtransactions(model, &transaction_instance, subject_id);
-                initiate_transactions_ui(ui, &startable_subtransactions, Some(transaction_instance.id), modal_opened, &mut open_modal);
+                initiate_transactions_ui(ui, execution, &startable_subtransactions, Some(transaction_instance.id), modal_opened, &mut open_modal);
                 ui.end_row();
             }
         });
