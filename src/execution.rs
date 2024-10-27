@@ -215,16 +215,24 @@ impl Execution {
         }
     }
 
-    pub fn startable_subtransactions<'a>(model: &'a Model, transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
-       let mut transactions: Vec<&Transaction> = model
-           .get_transaction(&transaction_instance.transaction_id)
-           .impediments.iter().map(|i| &i.impeding_transaction_id)
-           .map(|t_i| model.get_transaction(t_i))
-           .filter(|t| model.get_initiator_subjects_ids(&t.id).contains(&subject_id))
-           .collect();
-        transactions.sort();
-        transactions.dedup();
-        transactions
+    pub fn startable_subtransactions<'a>(model: &'a Model, execution: &'a Execution, parent_transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
+        let transaction = model.get_transaction(&parent_transaction_instance.transaction_id);
+        let mut res: Vec<&Transaction> = transaction.initiations.iter().filter_map(|initiation| {
+            let is_initiator = model.get_initiator_subjects_ids(&initiation.initiated_transaction_id).contains(&subject_id);
+            if is_initiator {
+                let initiating_c_fact_matches = execution.get_c_p_world_item_by_fact(&parent_transaction_instance.id, &CPFact::CFact(initiation.initiating_c_fact.clone())).is_some();
+                if initiating_c_fact_matches {
+                    Some(model.get_transaction(&initiation.initiated_transaction_id))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }).collect();
+        res.sort();
+        res.dedup();
+        res
     }
 
     pub fn get_facts_for_transaction_instance(&self, transaction_instance_id: &TransactionInstanceId) -> Vec<&CPWorldItem> {

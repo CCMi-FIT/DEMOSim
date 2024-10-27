@@ -214,6 +214,13 @@ impl std::fmt::Display for TransactionId {
 }
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
+pub struct Initiation {
+    pub initiating_c_fact: CFact,
+    pub initiated_transaction_id: TransactionId,
+    pub initiated_c_act: CAct,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
 pub struct Impediment {
     pub impeded_act: CPAct,
     pub impeding_transaction_id: TransactionId,
@@ -228,6 +235,7 @@ pub struct Transaction {
     pub product: String,
     pub initiator_id: ActorRoleId,
     pub executor_id: ActorRoleId,
+    pub initiations: Vec<Initiation>,
     pub impediments: Vec<Impediment>,
 }
 
@@ -265,6 +273,7 @@ impl Transaction {
             product: String::default(),
             initiator_id: ActorRole::default().id,
             executor_id: ActorRole::default().id,
+            initiations: Vec::default(),
             impediments: Vec::default(),
         }
     }
@@ -399,11 +408,16 @@ impl Model {
         }).collect()
     }
 
-    pub fn startable_transactions(&self, subject: &Subject) -> Vec<&Transaction> {
-        let roles_ids = self.adt.get_roles_of_subject(subject);
-        let all_impediments: Vec<Impediment> = self.transactions.iter().flat_map(|t| t.impediments.clone()).collect();
-        // Transactions that are impeding other ones cannot be started directly, but only in context of the impeded ones
-        self.transactions.iter().filter(|t| roles_ids.contains(&&t.initiator_id) && all_impediments.iter().find(|i| i.impeding_transaction_id == t.id).is_none()).collect()
+    pub fn directly_startable_transactions(&self, subject_id: &SubjectId) -> Vec<&Transaction> {
+        let subject = self.get_subject(&subject_id);
+        let roles = self.adt.get_roles_of_subject(subject);
+        let all_initiations = self.transactions.iter().flat_map(|t| &t.initiations);
+        self.transactions.iter()
+            .filter(|t| {
+                let is_target_of_initiation = all_initiations.clone().find(|i| i.initiated_transaction_id == t.id).is_some();
+                roles.contains(&&t.initiator_id) && !is_target_of_initiation
+            })
+            .collect()
     }
 }
 

@@ -1,7 +1,7 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
 use crate::execution::{Execution, TransactionInstance, TransactionInstanceId};
-use crate::model::{CPAct, CPFact, Impediment, Model, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::{CPAct, CPFact, Impediment, Model, SubjectId, Transaction, TransactionId};
 use crate::model::CAct::Request;
 
 #[inline]
@@ -43,8 +43,6 @@ fn can_commit(model: &Model, execution: &Execution, transaction: &Transaction, p
                         .map(|t_i| (imp, t_i))
                 )
                 .collect();
-        println!("{:#?}", impediments);
-        println!("{:#?}", impeding_transactions_instances);
         if impeding_transactions_instances.is_empty() {
            let mut res: Vec<String> = Vec::new();
            for imp in impediments {
@@ -103,8 +101,7 @@ fn startable_transactions_ui<F>(
     modal_opened: bool,
     open_modal: &mut F,
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
-    let subject: &Subject = app_context.model.subjects.iter().find(|p| p.id == *subject_id).unwrap();
-    let startable_transactions = app_context.model.startable_transactions(&subject);
+    let startable_transactions = app_context.model.directly_startable_transactions(subject_id);
     initiate_transactions_ui(ui, &app_context.model, &app_context.execution, &startable_transactions, parent_transaction_instance_id, modal_opened, open_modal);
     ui.add_space(10.0);
     ui.separator();
@@ -122,7 +119,6 @@ fn agenda_ui<F>(
     let execution = &mut app_context.execution;
     let subject_context = &mut app_context.subject_context;
     let agenda = execution.agenda_for(subject_id).clone();
-    subject_context.clear_selected_next_act();
     egui::Grid::new("Subject's agenda")
         .striped(true)
         .spacing(&[10.0, 10.0])
@@ -141,8 +137,9 @@ fn agenda_ui<F>(
                 let transaction = model.get_transaction(&transaction_instance.transaction_id);
                 let performer = model.get_subject(&agenda_item.performer_id);
                 let next_acts = agenda_item.fact.next_acts();
-                let mut selected_next_act = subject_context.get_selected_next_act(&transaction_instance.id)
+                let mut selected_next_act = subject_context.get_selected_next_act(&subject_id, &transaction_instance.id)
                     .unwrap_or(&next_acts[0].clone()).to_owned();
+                let mut committed = false;
                 let impediments_msgs_o = can_commit(model, execution, &transaction, transaction_instance_parent, &selected_next_act).map(|msgs| msgs.join("\n"));
 
                 ui.label(agenda_item.timestamp.to_string());
@@ -163,12 +160,17 @@ fn agenda_ui<F>(
                     if ui.button("Commit")
                         .on_disabled_hover_text(impediments_msgs_o.unwrap_or_default())
                         .clicked() {
-                        execution.process_new_fact(model, transaction_instance.id.clone(), subject_id.clone(), selected_next_act.to_fact());
-                        execution.remove_agenda_item(agenda_item);
-                    }
+                            execution.process_new_fact(model, transaction_instance.id.clone(), subject_id.clone(), selected_next_act.to_fact());
+                            execution.remove_agenda_item(agenda_item);
+                            committed = true;
+                        }
                 });
-                subject_context.selected_next_act.insert(transaction_instance.id.clone(), selected_next_act);
-                let startable_subtransactions = Execution::startable_subtransactions(model, &transaction_instance, subject_id);
+                if committed {
+                    subject_context.clear_selected_next_act(subject_id, &transaction_instance.id);
+                } else {
+                    subject_context.selected_next_act.insert((subject_id.clone(), transaction_instance.id.clone()), selected_next_act);
+                }
+                let startable_subtransactions = Execution::startable_subtransactions(model, execution, &transaction_instance, subject_id);
                 initiate_transactions_ui(ui, model, execution, &startable_subtransactions, Some(transaction_instance.id), modal_opened, &mut open_modal);
                 ui.end_row();
             }

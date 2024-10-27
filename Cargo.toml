@@ -28,7 +28,7 @@ uuid = { version = "1", features = ["serde", "v4"] }
 strum = "0.26"
 strum_macros = "0.26"
 chrono = { version = "0.4", features = ["serde"] }
-rfd = "0.15.0"
+rfd = { version = "0.15.0", default-features = false, features = ["gtk3"] }
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

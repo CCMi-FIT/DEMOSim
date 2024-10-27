@@ -18,18 +18,18 @@ pub struct InitiateTransactionModalContext {
 pub struct SubjectContext {
     pub focused_subject_id_o: Option<SubjectId>,
     #[serde(skip)]
-    pub selected_next_act: HashMap<TransactionInstanceId, CPAct>,
+    pub selected_next_act: HashMap<(SubjectId, TransactionInstanceId), CPAct>,
 }
 
 impl SubjectContext {
     #[inline]
-    pub fn get_selected_next_act(&self, transaction_instance_id: &TransactionInstanceId) -> Option<&CPAct> {
-        self.selected_next_act.get(transaction_instance_id)
+    pub fn get_selected_next_act(&self, subject_id: &SubjectId, transaction_instance_id: &TransactionInstanceId) -> Option<&CPAct> {
+        self.selected_next_act.get(&(subject_id.clone(), transaction_instance_id.clone()))
     }
 
     #[inline]
-    pub fn clear_selected_next_act(&mut self) {
-        self.selected_next_act.clear();
+    pub fn clear_selected_next_act(&mut self, subject_id: &SubjectId, transaction_instance_id: &TransactionInstanceId) {
+        self.selected_next_act.remove(&(subject_id.clone(), transaction_instance_id.clone()));
     }
 }
 
