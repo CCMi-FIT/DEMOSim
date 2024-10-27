@@ -95,6 +95,7 @@ impl eframe::App for DemosimApp {
                         }
                         if ui.button("Load model...").clicked() {
                             if let Some(model) = load_model().unwrap() {
+                                self.app_context = Default::default();
                                 self.app_context.model = model;
                             }
                             ui.close_menu();
