@@ -1,10 +1,10 @@
 use eframe::epaint::Color32;
 use egui::{RichText, TextWrapMode};
 use std::collections::{HashMap, HashSet};
+use crate::app::TransactionContext;
+use crate::model::{all_acts, all_c_acts, all_c_facts, ActorRole, CAct, CFact, CPAct, Impediment, Initiation, Multiplicity, Transaction, TransactionId};
 
-use crate::model::{all_acts, all_c_acts, all_c_facts, ActorRole, CAct, CFact, CPAct, Impediment, Initiation, Transaction, TransactionId};
-
-pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
+pub fn initiations_ui(ui: &mut egui::Ui, transaction_context: &mut TransactionContext, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
     let available_transactions: Vec<&Transaction> = transactions.iter().filter(|tr| **tr != *transaction).collect();
     let transactions_map: HashMap<TransactionId, String> = available_transactions.iter()
         .map(|tr| (tr.id.clone(), tr.t_id.clone())).collect();
@@ -19,8 +19,6 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, "Initiating-CAct", in_index))
                     .selected_text(initiation.initiating_c_fact.to_string())
                     .show_ui(ui, |ui| {
-                        // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        // ui.set_min_width(60.0);
                         for initiating_fact in all_c_facts() {
                             ui.selectable_value(&mut initiation.initiating_c_fact, initiating_fact.to_owned(), initiating_fact.to_string());
                         }
@@ -29,8 +27,6 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, in_index, "Initiated-Transaction"))
                     .selected_text(transactions_map.get(&initiation.initiated_transaction_id).unwrap_or(&"tr not found".to_string()).to_owned())
                     .show_ui(ui, |ui| {
-                        // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        // ui.set_min_width(20.0);
                         for transaction in available_transactions.iter() {
                             ui.selectable_value(&mut initiation.initiated_transaction_id, transaction.id.clone(), transactions_map.get(&transaction.id).unwrap_or(&"tr not found".to_string()));
                         }
@@ -39,12 +35,20 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, in_index, "Initiated-CAct"))
                     .selected_text(initiation.initiated_c_act.to_string())
                     .show_ui(ui, |ui| {
-                        // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        // ui.set_min_width(20.0);
                         for c_act in all_c_acts().iter() {
                             ui.selectable_value(&mut initiation.initiated_c_act, c_act.clone(), c_act.to_string());
                         }
                     });
+                ui.add_space(5.0);
+                let multiplicity_r = transaction_context.multiplicity_str.parse::<Multiplicity>();
+                let col = match multiplicity_r {
+                    Err(_) => Some(Color32::RED),
+                    Ok(_) => None,
+                };
+                ui.add(egui::TextEdit::singleline(&mut transaction_context.multiplicity_str).min_size([50.0, 20.0].into()).text_color_opt(col));
+                if let Ok(multiplicity) = multiplicity_r {
+                    initiation.multiplicity = multiplicity;
+                }
             });
         }
         if ui.button(RichText::new("➕").color(Color32::GREEN)).clicked() {
@@ -52,6 +56,7 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 initiating_c_fact: CFact::default(),
                 initiated_transaction_id: available_transactions[0].id.clone(),
                 initiated_c_act: CAct::default(),
+                multiplicity: Multiplicity::default(), //TODO
             });
         }
         for index in to_delete.into_iter().rev() {
@@ -75,8 +80,6 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, "Impediment-CPAct", imp_index))
                     .selected_text(impediment.impeded_act.to_string())
                     .show_ui(ui, |ui| {
-                        // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        // ui.set_min_width(60.0);
                         for impeded_act in all_acts() {
                             ui.selectable_value(&mut impediment.impeded_act, impeded_act.to_owned(), impeded_act.to_string());
                         }
@@ -85,8 +88,6 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-Transaction"))
                     .selected_text(transactions_map.get(&impediment.impeding_transaction_id).unwrap_or(&"tr not found".to_string()).to_owned())
                     .show_ui(ui, |ui| {
-                        // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        // ui.set_min_width(20.0);
                         for transaction in available_transactions.iter() {
                             ui.selectable_value(&mut impediment.impeding_transaction_id, transaction.id.clone(), transactions_map.get(&transaction.id).unwrap_or(&"tr not found".to_string()));
                         }
@@ -94,8 +95,6 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-CFact"))
                     .selected_text(impediment.impeding_c_fact.to_string())
                     .show_ui(ui, |ui| {
-                        // ui.style_mut().wrap_mode = Some(TextWrapMode::Extend);
-                        // ui.set_min_width(20.0);
                         for c_fact in all_c_facts().iter() {
                             ui.selectable_value(&mut impediment.impeding_c_fact, c_fact.clone(), c_fact.to_string());
                         }
@@ -115,7 +114,7 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
     });
 }
 
-pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transactions: &mut Vec<Transaction>) {
+pub fn transactions_ui(ui: &mut egui::Ui, transaction_context: &mut TransactionContext, actor_roles: &Vec<ActorRole>, transactions: &mut Vec<Transaction>) {
     let mut to_delete = Vec::new();
     egui::Grid::new("Actor Roles")
         .striped(true)
@@ -127,8 +126,8 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
             ui.strong("Product");
             ui.strong("Initiator");
             ui.strong("Executor");
-            ui.strong("Initiations");
-            ui.strong("Wait Links");
+            ui.strong("Initiations\nInitiating C-Fact | Initiated Transaction | Iniciated C-Act | Multiplicity");
+            ui.strong("Wait Links\nImpeded Fact | Impeding Transaction | Impeding C-Fact");
             ui.end_row();
 
             let used_executors: HashSet<_> = transactions.iter().map(|tr| tr.executor_id.clone()).collect();
@@ -170,7 +169,7 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                             ui.selectable_value(&mut transaction.executor_id, actor_role.id.clone(), actor_role.name.clone());
                         }
                     });
-                initiations_ui(ui, &transactions_cloned, &mut transaction);
+                initiations_ui(ui, transaction_context, &transactions_cloned, &mut transaction);
                 impediments_ui(ui, &transactions_cloned, &mut transaction);
                 ui.end_row();
             }

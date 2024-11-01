@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 use uuid::Uuid;
 use strum_macros::EnumIter;
@@ -47,7 +46,7 @@ impl Default for CAct {
 }
 
 impl std::fmt::Display for CAct {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use CAct::*;
         match self {
             Request => write!(f, "Request"),
@@ -82,7 +81,7 @@ pub enum CPAct {
 }
 
 impl std::fmt::Display for CPAct {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use CPAct::*;
         match self {
             CAct(c) => write!(f, "{}", c),
@@ -123,7 +122,7 @@ impl Default for CFact {
 }
 
 impl std::fmt::Display for CFact {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use CFact::*;
         match self {
             Requested => write!(f, "Requested"),
@@ -169,7 +168,7 @@ impl CPFact {
 }
 
 impl std::fmt::Display for CPFact {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use CPFact::*;
         match self {
             CFact(c) => write!(f, "{}", c),
@@ -183,7 +182,7 @@ impl std::fmt::Display for CPFact {
 pub struct ActorRoleId(Uuid);
 
 impl std::fmt::Display for ActorRoleId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -208,16 +207,95 @@ impl Default for ActorRole {
 pub struct TransactionId(Uuid);
 
 impl std::fmt::Display for TransactionId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub enum MaxMultiplicity {
+    Numeric(u8),
+    Any,
+}
+
+impl std::fmt::Display for MaxMultiplicity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use MaxMultiplicity::*;
+        match self {
+            Numeric(n) => write!(f, "{}", n),
+            Any => write!(f, "*"),
+        }
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct Multiplicity {
+    pub min: u8,
+    pub max: MaxMultiplicity,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseMultiplicityError {
+    reason: String,
+}
+
+impl ParseMultiplicityError {
+    fn new(reason: &str) -> Self {
+        ParseMultiplicityError {
+            reason: reason.to_string(),
+        }
+    }
+}
+
+impl std::fmt::Display for ParseMultiplicityError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ParseMultiplicityError: {}", self.reason)
+    }
+}
+
+impl std::error::Error for ParseMultiplicityError {}
+
+impl std::str::FromStr for Multiplicity {
+    type Err = ParseMultiplicityError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().split_once("..") {
+            None => Err(ParseMultiplicityError::new("Missing '..'")),
+            Some((min_s, max_s)) => {
+                let min = min_s.parse::<u8>().map_err(|_| ParseMultiplicityError::new(min_s))?;
+                let max = if max_s == "*" {
+                    MaxMultiplicity::Any
+                } else {
+                    MaxMultiplicity::Numeric(max_s.parse::<u8>().map_err(|_| ParseMultiplicityError::new(max_s))?)
+                };
+                Ok(Multiplicity { min, max })
+            }
+        }
+    }
+}
+
+impl Default for Multiplicity {
+    fn default() -> Self {
+        Self {
+            min: 1,
+            max: MaxMultiplicity::Numeric(1),
+        }
+    }
+}
+
+impl std::fmt::Display for Multiplicity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.min, self.max)
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Initiation {
     pub initiating_c_fact: CFact,
     pub initiated_transaction_id: TransactionId,
     pub initiated_c_act: CAct,
+    pub multiplicity: Multiplicity,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
@@ -284,7 +362,7 @@ impl Transaction {
 pub struct SubjectId(Uuid);
 
 impl std::fmt::Display for SubjectId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -329,7 +407,7 @@ impl Default for AdtOption {
 }
 
 impl std::fmt::Display for AdtOption {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AdtOption::*;
         match self {
             Authorisation => write!(f, "A"),

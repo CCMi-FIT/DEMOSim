@@ -4,6 +4,20 @@ use crate::model::{CPAct, Model, SubjectId, TransactionId};
 use crate::persistence::{load_model, save_model};
 use crate::windows::EguiWindows;
 
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(default)] // if we add new fields, give them default values when deserializing old state
+pub struct TransactionContext {
+    pub multiplicity_str: String,
+}
+
+impl Default for TransactionContext {
+    fn default() -> Self {
+        Self {
+            multiplicity_str: "1..1".to_string(),
+        }
+    }
+}
+
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct InitiateTransactionModalContext {
@@ -45,6 +59,7 @@ pub struct CPWorldContext {
 pub struct AppContext {
     pub model: Model,
     pub execution: Execution,
+    pub transaction_context: TransactionContext,
     pub initiate_transaction_modal_context: InitiateTransactionModalContext,
     pub subject_context: SubjectContext,
     pub c_p_world_context: CPWorldContext,

@@ -45,7 +45,7 @@ impl EguiWindows {
             .open(transactions)
             .vscroll(true)
             .show(ctx, |ui| {
-                transactions::transactions_ui(ui, &model.actor_roles, &mut model.transactions)
+                transactions::transactions_ui(ui, &mut app_context.transaction_context, &model.actor_roles, &mut model.transactions)
             });
         egui::Window::new("Subjects")
             .open(subjects)
