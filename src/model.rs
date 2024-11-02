@@ -100,7 +100,7 @@ impl CPAct {
 }
 
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, EnumIter)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum CFact {
     Requested,
     Promised,

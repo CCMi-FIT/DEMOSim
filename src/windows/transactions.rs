@@ -1,14 +1,26 @@
 use eframe::epaint::Color32;
 use egui::{RichText, TextWrapMode};
 use std::collections::{HashMap, HashSet};
-use crate::app::TransactionContext;
 use crate::model::{all_acts, all_c_acts, all_c_facts, ActorRole, CAct, CFact, CPAct, Impediment, Initiation, Multiplicity, Transaction, TransactionId};
 
-pub fn initiations_ui(ui: &mut egui::Ui, transaction_context: &mut TransactionContext, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
+pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
     let available_transactions: Vec<&Transaction> = transactions.iter().filter(|tr| **tr != *transaction).collect();
     let transactions_map: HashMap<TransactionId, String> = available_transactions.iter()
         .map(|tr| (tr.id.clone(), tr.t_id.clone())).collect();
     let mut to_delete = Vec::new();
+
+    static mut MULTIPLICITY_STRINGS: Option<HashMap<usize, String>> = None;
+    unsafe {
+        if MULTIPLICITY_STRINGS.is_none() {
+            MULTIPLICITY_STRINGS = Some(
+                transaction.initiations.iter()
+                    .enumerate()
+                    .map(|(index, initiation)| (index, initiation.multiplicity.to_string()))
+                    .collect()
+            );
+        }
+    }
+    let multiplicity_strings = unsafe { MULTIPLICITY_STRINGS.as_mut().unwrap() };
 
     ui.vertical(|ui| {
         for (in_index, initiation) in transaction.initiations.iter_mut().enumerate() {
@@ -40,12 +52,15 @@ pub fn initiations_ui(ui: &mut egui::Ui, transaction_context: &mut TransactionCo
                         }
                     });
                 ui.add_space(5.0);
-                let multiplicity_r = transaction_context.multiplicity_str.parse::<Multiplicity>();
-                let col = match multiplicity_r {
+                let multiplicity_str = multiplicity_strings.get_mut(&in_index).unwrap();
+                let multiplicity_r = multiplicity_str.parse::<Multiplicity>();
+                // let multiplicity_r = transaction_context.initiations_multiplicity_str.parse::<Multiplicity>();
+                let color = match multiplicity_r {
                     Err(_) => Some(Color32::RED),
                     Ok(_) => None,
                 };
-                ui.add(egui::TextEdit::singleline(&mut transaction_context.multiplicity_str).min_size([50.0, 20.0].into()).text_color_opt(col));
+                ui.add(egui::TextEdit::singleline(multiplicity_str).min_size([50.0, 20.0].into()).text_color_opt(color));
+                // ui.add(egui::TextEdit::singleline(&mut transaction_context.initiations_multiplicity_str).min_size([50.0, 20.0].into()).text_color_opt(color));
                 if let Ok(multiplicity) = multiplicity_r {
                     initiation.multiplicity = multiplicity;
                 }
@@ -114,7 +129,7 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
     });
 }
 
-pub fn transactions_ui(ui: &mut egui::Ui, transaction_context: &mut TransactionContext, actor_roles: &Vec<ActorRole>, transactions: &mut Vec<Transaction>) {
+pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transactions: &mut Vec<Transaction>) {
     let mut to_delete = Vec::new();
     egui::Grid::new("Actor Roles")
         .striped(true)
@@ -169,7 +184,7 @@ pub fn transactions_ui(ui: &mut egui::Ui, transaction_context: &mut TransactionC
                             ui.selectable_value(&mut transaction.executor_id, actor_role.id.clone(), actor_role.name.clone());
                         }
                     });
-                initiations_ui(ui, transaction_context, &transactions_cloned, &mut transaction);
+                initiations_ui(ui, &transactions_cloned, &mut transaction);
                 impediments_ui(ui, &transactions_cloned, &mut transaction);
                 ui.end_row();
             }
