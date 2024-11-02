@@ -229,6 +229,26 @@ impl std::fmt::Display for MaxMultiplicity {
     }
 }
 
+impl MaxMultiplicity {
+    pub fn is_within_bound<T>(&self, num: T) -> bool
+    where
+        T: PartialOrd + Copy,
+        u8: TryInto<T>,
+    {
+        use MaxMultiplicity::*;
+        match self {
+            Numeric(n) => {
+                if let Ok(n_as_t) = (*n).try_into() {
+                    num < n_as_t
+                } else {
+                    false
+                }
+            }
+            Any => true,
+        }
+    }
+}
+
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Multiplicity {
     pub min: u8,

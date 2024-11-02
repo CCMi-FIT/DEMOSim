@@ -235,21 +235,62 @@ impl Execution {
        })
     }
 
-    pub fn startable_subtransactions<'a>(model: &'a Model, execution: &'a Execution, parent_transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
-        let transaction = model.get_transaction(&parent_transaction_instance.transaction_id);
-        let mut res: Vec<&Transaction> = transaction.initiations.iter().filter_map(|initiation| {
-            let is_initiator = model.get_initiator_subjects_ids(&initiation.initiated_transaction_id).contains(&subject_id);
-            if is_initiator {
-                let initiating_c_fact_matches = execution.get_c_p_world_item_by_fact(&parent_transaction_instance.id, &CPFact::CFact(initiation.initiating_c_fact.clone())).is_some();
-                if initiating_c_fact_matches {
-                    Some(model.get_transaction(&initiation.initiated_transaction_id))
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }).collect();
+    // pub fn startable_subtransactions<'a>(&self, model: &'a Model, parent_transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
+    //     let transaction = model.get_transaction(&parent_transaction_instance.transaction_id);
+    //     let mut res: Vec<&Transaction> = transaction.initiations.iter().filter_map(|initiation| {
+    //         if initiation.multiplicity.max.is_within_bound(self.get_instances_of_transaction(&transaction.id).len()) {
+    //             let is_initiator = model.get_initiator_subjects_ids(&initiation.initiated_transaction_id).contains(&subject_id);
+    //             if is_initiator {
+    //                 let initiating_c_fact_matches = self.get_c_p_world_item_by_fact(&parent_transaction_instance.id, &CPFact::CFact(initiation.initiating_c_fact.clone())).is_some();
+    //                 if initiating_c_fact_matches {
+    //                     Some(model.get_transaction(&initiation.initiated_transaction_id))
+    //                 } else {
+    //                     None
+    //                 }
+    //             } else {
+    //                 None
+    //             }
+    //         } else {
+    //             None
+    //         }
+    //     }).collect();
+    //     res.sort();
+    //     res.dedup();
+    //     res
+    // }
+
+    pub fn startable_subtransactions<'a>(
+        &self,
+        model: &'a Model,
+        parent_transaction_instance: &TransactionInstance,
+        subject_id: &SubjectId,
+    ) -> Vec<&'a Transaction> {
+        let parent_transaction = model.get_transaction(&parent_transaction_instance.transaction_id);
+
+        let mut res: Vec<&Transaction> = parent_transaction
+            .initiations
+            .iter()
+            .filter_map(|initiation| {
+                let transaction = model.get_transaction(&initiation.initiated_transaction_id);
+                // Check if the multiplicity constraint is met
+                let instance_count = self.get_instances_of_transaction(&transaction.id).len();
+                let within_bound = initiation.multiplicity.max.is_within_bound(instance_count);
+                within_bound.then(|| ())?;
+
+                // Check if the subject is an initiator
+                let is_initiator = model.get_initiator_subjects_ids(&initiation.initiated_transaction_id).contains(subject_id);
+                is_initiator.then(|| ())?;
+
+                // Check if the initiating fact condition matches
+                let fact_matches = self
+                    .get_c_p_world_item_by_fact(
+                        &parent_transaction_instance.id,
+                        &CPFact::CFact(initiation.initiating_c_fact.clone()),
+                    )
+                    .is_some();
+                fact_matches.then(|| transaction)
+            })
+            .collect();
         res.sort();
         res.dedup();
         res

@@ -28,7 +28,6 @@ pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
         });
 }
 
-
 fn initiate_transactions_ui<F>(
     ui: &mut egui::Ui,
     model: &Model,
@@ -132,7 +131,7 @@ fn agenda_ui<F>(
                 } else {
                     subject_context.selected_next_act.insert((subject_id.clone(), transaction_instance.id.clone()), selected_next_act);
                 }
-                let startable_subtransactions = Execution::startable_subtransactions(model, execution, &transaction_instance, subject_id);
+                let startable_subtransactions = execution.startable_subtransactions(model, &transaction_instance, subject_id);
                 initiate_transactions_ui(ui, model, execution, &startable_subtransactions, Some(transaction_instance.id), modal_opened, &mut open_modal);
                 ui.end_row();
             }
