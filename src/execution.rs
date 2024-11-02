@@ -1,7 +1,7 @@
 use std::fmt::Formatter;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
-use crate::model::{CFact, CPFact, Model, Subject, SubjectId, Transaction, TransactionId};
+use crate::model::{CFact, CPAct, CPFact, Impediment, Model, Subject, SubjectId, Transaction, TransactionId};
 use crate::model::CFact::Promised;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -215,6 +215,26 @@ impl Execution {
         }
     }
 
+    pub fn get_facts_for_transaction_instance(&self, transaction_instance_id: &TransactionInstanceId) -> Vec<&CPWorldItem> {
+       self.c_p_world.iter().filter(|c_p_world_item| c_p_world_item.get_transaction_instance_id() == transaction_instance_id).collect()
+    }
+
+    pub fn get_c_p_world_item_by_fact<'a>(&'a self, transaction_instance_id: &TransactionInstanceId, fact: &CPFact) -> Option<&'a CPWorldItem> {
+       self.c_p_world.iter().find(|c_p_world_item| {
+           use CPWorldItem::*;
+           match c_p_world_item {
+               PWorldItem(p_world_item) => match fact {
+                   CPFact::PFact => p_world_item.transaction_instance_id == *transaction_instance_id,
+                   CPFact::CFact(_) => false,
+               },
+               CWorldItem(c_world_item) => match fact {
+                   CPFact::PFact => false,
+                   CPFact::CFact(c_fact) => c_world_item.transaction_instance_id == *transaction_instance_id && c_world_item.fact == *c_fact,
+               }
+           }
+       })
+    }
+
     pub fn startable_subtransactions<'a>(model: &'a Model, execution: &'a Execution, parent_transaction_instance: &TransactionInstance, subject_id: &SubjectId) -> Vec<&'a Transaction> {
         let transaction = model.get_transaction(&parent_transaction_instance.transaction_id);
         let mut res: Vec<&Transaction> = transaction.initiations.iter().filter_map(|initiation| {
@@ -235,23 +255,42 @@ impl Execution {
         res
     }
 
-    pub fn get_facts_for_transaction_instance(&self, transaction_instance_id: &TransactionInstanceId) -> Vec<&CPWorldItem> {
-       self.c_p_world.iter().filter(|c_p_world_item| c_p_world_item.get_transaction_instance_id() == transaction_instance_id).collect()
+    pub fn get_act_impediments(&self, model: &Model, transaction: &Transaction, parent_transaction_id: TransactionInstanceId, act: &CPAct) -> Option<Vec<String>> {
+        let impediments: Vec<&Impediment> = transaction.impediments.iter().filter(|imp1| imp1.impeded_act == *act).collect();
+        if impediments.is_empty() {
+            None
+        } else {
+            let impeding_transactions_instances: Vec<(&&Impediment, &TransactionInstance)> =
+                impediments.iter()
+                    .filter_map(|imp|
+                        self.get_instances_of_transaction(&imp.impeding_transaction_id)
+                            .into_iter().find(|t_i| {
+                            t_i.parent_transaction_instance_id == Some(parent_transaction_id.clone())
+                        })
+                            .map(|t_i| (imp, t_i))
+                    )
+                    .collect();
+            if impeding_transactions_instances.is_empty() {
+                let mut res: Vec<String> = Vec::new();
+                for imp in impediments {
+                    let transaction = model.get_transaction(&imp.impeding_transaction_id);
+                    res.push(format!("Waiting for an instance of {}: {} - {}", transaction.t_id, transaction.name ,imp.impeding_c_fact));
+                }
+                Some(res)
+            } else {
+                let mut res: Vec<String> = Vec::new();
+                for imp in &impediments {
+                    for (imp1, t_i) in &impeding_transactions_instances {
+                        if ***imp1 == **imp {
+                            if self.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_none() {
+                                res.push(format!("Waiting for transaction instance {} reaching fact {}", t_i.id.to_string(), imp.impeding_c_fact));
+                            }
+                        }
+                    }
+                };
+                if res.is_empty() { None } else { Some(res) }
+            }
+        }
     }
 
-    pub fn get_c_p_world_item_by_fact<'a>(&'a self, transaction_instance_id: &TransactionInstanceId, fact: &CPFact) -> Option<&'a CPWorldItem> {
-       self.c_p_world.iter().find(|c_p_world_item| {
-           use CPWorldItem::*;
-           match c_p_world_item {
-               PWorldItem(p_world_item) => match fact {
-                   CPFact::PFact => p_world_item.transaction_instance_id == *transaction_instance_id,
-                   CPFact::CFact(_) => false,
-               },
-               CWorldItem(c_world_item) => match fact {
-                   CPFact::PFact => false,
-                   CPFact::CFact(c_fact) => c_world_item.transaction_instance_id == *transaction_instance_id && c_world_item.fact == *c_fact,
-               }
-           }
-       })
-    }
 }

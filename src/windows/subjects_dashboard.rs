@@ -1,7 +1,7 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
-use crate::execution::{Execution, TransactionInstance, TransactionInstanceId};
-use crate::model::{CPAct, CPFact, Impediment, Model, SubjectId, Transaction, TransactionId};
+use crate::execution::{Execution, TransactionInstanceId};
+use crate::model::{CPAct, Model, SubjectId, Transaction, TransactionId};
 use crate::model::CAct::Request;
 
 #[inline]
@@ -28,44 +28,6 @@ pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
         });
 }
 
-fn can_commit(model: &Model, execution: &Execution, transaction: &Transaction, parent_transaction_id: TransactionInstanceId, act: &CPAct) -> Option<Vec<String>> {
-    let impediments: Vec<&Impediment> = transaction.impediments.iter().filter(|imp1| imp1.impeded_act == *act).collect();
-    if impediments.is_empty() {
-        None
-    } else {
-        let impeding_transactions_instances: Vec<(&&Impediment, &TransactionInstance)> =
-            impediments.iter()
-                .filter_map(|imp|
-                    execution.get_instances_of_transaction(&imp.impeding_transaction_id)
-                        .into_iter().find(|t_i| {
-                        t_i.parent_transaction_instance_id == Some(parent_transaction_id.clone())
-                    })
-                        .map(|t_i| (imp, t_i))
-                )
-                .collect();
-        if impeding_transactions_instances.is_empty() {
-           let mut res: Vec<String> = Vec::new();
-           for imp in impediments {
-               let transaction = model.get_transaction(&imp.impeding_transaction_id);
-               res.push(format!("Waiting for an instance of {}: {} - {}", transaction.t_id, transaction.name ,imp.impeding_c_fact));
-           }
-            Some(res)
-        } else {
-            let mut res: Vec<String> = Vec::new();
-            for imp in &impediments {
-                for (imp1, t_i) in &impeding_transactions_instances {
-                    if ***imp1 == **imp {
-                        if execution.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_none() {
-                            res.push(format!("Waiting for transaction instance {} reaching fact {}", t_i.id.to_string(), imp.impeding_c_fact));
-                        }
-                    }
-                }
-            };
-            if res.is_empty() { None } else { Some(res) }
-        }
-    }
-}
-
 
 fn initiate_transactions_ui<F>(
     ui: &mut egui::Ui,
@@ -79,7 +41,7 @@ fn initiate_transactions_ui<F>(
     ui.horizontal(|ui| {
         for s_t in startable_transactions {
             let impediments_msgs_o = parent_transaction_instance_id_o.as_ref()
-                .and_then(|parent_tran_inst_id| can_commit(model, execution, s_t, parent_tran_inst_id.clone(), &CPAct::CAct(Request)))
+                .and_then(|parent_tran_inst_id| execution.get_act_impediments(model, s_t, parent_tran_inst_id.clone(), &CPAct::CAct(Request)))
                 .map(|msgs| msgs.join("\n"));
             let enabled = !modal_opened && impediments_msgs_o.is_none();
             ui.add_enabled_ui(enabled, |ui| {
@@ -140,7 +102,7 @@ fn agenda_ui<F>(
                 let mut selected_next_act = subject_context.get_selected_next_act(&subject_id, &transaction_instance.id)
                     .unwrap_or(&next_acts[0].clone()).to_owned();
                 let mut committed = false;
-                let impediments_msgs_o = can_commit(model, execution, &transaction, transaction_instance_parent, &selected_next_act).map(|msgs| msgs.join("\n"));
+                let impediments_msgs_o = execution.get_act_impediments(model, &transaction, transaction_instance_parent, &selected_next_act).map(|msgs| msgs.join("\n"));
 
                 ui.label(agenda_item.timestamp.to_string());
                 ui.label(format!("{}: {}", transaction.t_id.to_string(), transaction.name.clone()));
