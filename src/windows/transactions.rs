@@ -9,19 +9,6 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
         .map(|tr| (tr.id.clone(), tr.t_id.clone())).collect();
     let mut to_delete = Vec::new();
 
-    static mut MULTIPLICITY_STRINGS: Option<HashMap<usize, String>> = None;
-    unsafe {
-        if MULTIPLICITY_STRINGS.is_none() {
-            MULTIPLICITY_STRINGS = Some(
-                transaction.initiations.iter()
-                    .enumerate()
-                    .map(|(index, initiation)| (index, initiation.multiplicity.to_string()))
-                    .collect()
-            );
-        }
-    }
-    let multiplicity_strings = unsafe { MULTIPLICITY_STRINGS.as_mut().unwrap() };
-
     ui.vertical(|ui| {
         for (in_index, initiation) in transaction.initiations.iter_mut().enumerate() {
             ui.horizontal(|ui| {
@@ -52,15 +39,15 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                         }
                     });
                 ui.add_space(5.0);
-                let multiplicity_str = multiplicity_strings.get_mut(&in_index).unwrap();
-                let multiplicity_r = multiplicity_str.parse::<Multiplicity>();
-                // let multiplicity_r = transaction_context.initiations_multiplicity_str.parse::<Multiplicity>();
+                if initiation.multiplicity_tmp_str.is_empty() {
+                    initiation.multiplicity_tmp_str = initiation.multiplicity.to_string();
+                }
+                let multiplicity_r = initiation.multiplicity_tmp_str.parse::<Multiplicity>();
                 let color = match multiplicity_r {
                     Err(_) => Some(Color32::RED),
                     Ok(_) => None,
                 };
-                ui.add(egui::TextEdit::singleline(multiplicity_str).min_size([50.0, 20.0].into()).text_color_opt(color));
-                // ui.add(egui::TextEdit::singleline(&mut transaction_context.initiations_multiplicity_str).min_size([50.0, 20.0].into()).text_color_opt(color));
+                ui.add(egui::TextEdit::singleline(&mut initiation.multiplicity_tmp_str).min_size([50.0, 20.0].into()).text_color_opt(color));
                 if let Ok(multiplicity) = multiplicity_r {
                     initiation.multiplicity = multiplicity;
                 }
@@ -71,7 +58,8 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 initiating_c_fact: CFact::default(),
                 initiated_transaction_id: available_transactions[0].id.clone(),
                 initiated_c_act: CAct::default(),
-                multiplicity: Multiplicity::default(), //TODO
+                multiplicity: Multiplicity::default(),
+                multiplicity_tmp_str: Multiplicity::default().to_string(),
             });
         }
         for index in to_delete.into_iter().rev() {

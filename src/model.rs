@@ -316,6 +316,8 @@ pub struct Initiation {
     pub initiated_transaction_id: TransactionId,
     pub initiated_c_act: CAct,
     pub multiplicity: Multiplicity,
+    #[serde(skip)]
+    pub multiplicity_tmp_str: String, // This would be much better out of model (AppContext), but I lost all my hair...
 }
 
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, Eq, Debug, Clone)]
@@ -490,8 +492,8 @@ impl Model {
         self.actor_roles.iter().find(|ar| ar.id == *ar_id).unwrap()
     }
 
-    pub fn get_transaction(&self, t_id: &TransactionId) -> &Transaction {
-        self.transactions.iter().find(|t| t.id == *t_id).unwrap()
+    pub fn get_transaction(&self, transaction_id: &TransactionId) -> &Transaction {
+        self.transactions.iter().find(|t| t.id == *transaction_id).unwrap()
     }
 
     pub fn get_subject(&self, s_id: &SubjectId) -> &Subject {
@@ -504,6 +506,16 @@ impl Model {
             let roles = self.adt.get_roles_of_subject(s);
             if roles.contains(&&t.initiator_id) { Some(s.id.clone()) } else { None }
         }).collect()
+    }
+
+    pub fn get_initiation_of_transaction(&self, transaction: &Transaction) -> Option<&Initiation> {
+        let res: Vec<&Initiation> = self.transactions.iter().filter_map(|t| t.initiations.iter().find(|i| i.initiated_transaction_id == transaction.id)).collect();
+        if res.is_empty() {
+            None
+        } else {
+            if res.len() > 1 { eprintln!("Warning: multiple initiations found for transaction {}", transaction.t_id); }
+            Some(res[0])
+        }
     }
 
     pub fn directly_startable_transactions(&self, subject_id: &SubjectId) -> Vec<&Transaction> {

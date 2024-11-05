@@ -1,4 +1,3 @@
-use std::fmt::Formatter;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use crate::model::{CFact, CPAct, CPFact, Impediment, Model, Subject, SubjectId, Transaction, TransactionId};
@@ -8,7 +7,7 @@ use crate::model::CFact::Promised;
 pub struct TransactionInstanceId(Uuid);
 
 impl std::fmt::Display for TransactionInstanceId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -139,15 +138,22 @@ impl Execution {
         self.agendas.retain(|(_, agenda_item)| agenda_item.transaction_instance_id != *transaction_instance_id);
     }
 
-    #[inline]
-    pub fn get_instances_of_transaction(&self, transaction_id: &TransactionId, parent_transaction_instance_id_o: Option<TransactionInstanceId>) -> Vec<&TransactionInstance> {
-        self.transactions_instances.iter().filter(|t_i| t_i.transaction_id == *transaction_id && t_i.parent_transaction_instance_id == parent_transaction_instance_id_o).collect()
+    // This is recursive -- it gathers instances from the whole ancestry
+    pub fn get_instances_of_transaction(&self, transaction_id: &TransactionId, parent_transaction_instance_id_o: &Option<TransactionInstanceId>) -> Vec<&TransactionInstance> {
+        let direct_parent = self.transactions_instances.iter().filter(|t_i| t_i.transaction_id == *transaction_id && t_i.parent_transaction_instance_id == *parent_transaction_instance_id_o);
+        let mut all: Vec<&TransactionInstance> = match parent_transaction_instance_id_o {
+            None => Vec::new(),
+            Some(parent_transaction_instance_id) => self.get_instances_of_transaction(transaction_id, &self.get_transaction_instance(parent_transaction_instance_id).parent_transaction_instance_id),
+        };
+        all.extend(direct_parent);
+        all
+
     }
 
     #[inline]
     fn get_addressee_for_c_fact(&self, transaction_instance: &TransactionInstance, c_fact: &CFact) -> SubjectId {
         use CFact::*;
-        match c_fact  {
+        match c_fact {
             Requested => transaction_instance.executor_id.clone(),
             Promised => transaction_instance.initiator_id.clone(),
             Declined => transaction_instance.initiator_id.clone(),
@@ -182,7 +188,8 @@ impl Execution {
                     performer,
                 });
                 self.c_p_world.push(new_c_p_world_item);
-                self.agendas.push((transaction_instance.executor_id.clone(), agenda_item)); },
+                self.agendas.push((transaction_instance.executor_id.clone(), agenda_item));
+            },
             CFact(c_fact) => {
                 let addressee_id = self.get_addressee_for_c_fact(&transaction_instance, &c_fact);
                 let addressee = model.get_subject(&addressee_id).to_owned();
@@ -204,9 +211,9 @@ impl Execution {
     }
 
     pub fn agenda_for(&self, subject_id: &SubjectId) -> Vec<AgendaItem> {
-       self.agendas.iter()
-           .filter_map(|(subject_id1, c_p_world_item)| if subject_id1 == subject_id { Some(c_p_world_item.clone()) } else { None })
-           .collect()
+        self.agendas.iter()
+            .filter_map(|(subject_id1, c_p_world_item)| if subject_id1 == subject_id { Some(c_p_world_item.clone()) } else { None })
+            .collect()
     }
 
     pub fn remove_agenda_item(&mut self, agenda_item: &AgendaItem) {
@@ -216,23 +223,23 @@ impl Execution {
     }
 
     pub fn get_facts_for_transaction_instance(&self, transaction_instance_id: &TransactionInstanceId) -> Vec<&CPWorldItem> {
-       self.c_p_world.iter().filter(|c_p_world_item| c_p_world_item.get_transaction_instance_id() == transaction_instance_id).collect()
+        self.c_p_world.iter().filter(|c_p_world_item| c_p_world_item.get_transaction_instance_id() == transaction_instance_id).collect()
     }
 
     pub fn get_c_p_world_item_by_fact<'a>(&'a self, transaction_instance_id: &TransactionInstanceId, fact: &CPFact) -> Option<&'a CPWorldItem> {
-       self.c_p_world.iter().find(|c_p_world_item| {
-           use CPWorldItem::*;
-           match c_p_world_item {
-               PWorldItem(p_world_item) => match fact {
-                   CPFact::PFact => p_world_item.transaction_instance_id == *transaction_instance_id,
-                   CPFact::CFact(_) => false,
-               },
-               CWorldItem(c_world_item) => match fact {
-                   CPFact::PFact => false,
-                   CPFact::CFact(c_fact) => c_world_item.transaction_instance_id == *transaction_instance_id && c_world_item.fact == *c_fact,
-               }
-           }
-       })
+        self.c_p_world.iter().find(|c_p_world_item| {
+            use CPWorldItem::*;
+            match c_p_world_item {
+                PWorldItem(p_world_item) => match fact {
+                    CPFact::PFact => p_world_item.transaction_instance_id == *transaction_instance_id,
+                    CPFact::CFact(_) => false,
+                },
+                CWorldItem(c_world_item) => match fact {
+                    CPFact::PFact => false,
+                    CPFact::CFact(c_fact) => c_world_item.transaction_instance_id == *transaction_instance_id && c_world_item.fact == *c_fact,
+                }
+            }
+        })
     }
 
     pub fn startable_subtransactions<'a>(
@@ -247,9 +254,9 @@ impl Execution {
             .initiations
             .iter()
             .filter_map(|initiation| {
-                let transaction = model.get_transaction(&initiation.initiated_transaction_id);
+                let initiated_transaction = model.get_transaction(&initiation.initiated_transaction_id);
                 // Check if the multiplicity constraint is met
-                let instance_count = self.get_instances_of_transaction(&transaction.id, Some(parent_transaction_instance.id.clone())).len();
+                let instance_count = self.get_instances_of_transaction(&initiated_transaction.id, &Some(parent_transaction_instance.id.clone())).len();
                 let within_bound = initiation.multiplicity.max.is_within_bound(instance_count);
                 within_bound.then(|| ())?;
 
@@ -257,14 +264,14 @@ impl Execution {
                 let is_initiator = model.get_initiator_subjects_ids(&initiation.initiated_transaction_id).contains(subject_id);
                 is_initiator.then(|| ())?;
 
-                // Check if the initiating fact condition matches
+                // Check if the initiating C-fact condition matches
                 let fact_matches = self
                     .get_c_p_world_item_by_fact(
                         &parent_transaction_instance.id,
                         &CPFact::CFact(initiation.initiating_c_fact.clone()),
                     )
                     .is_some();
-                fact_matches.then(|| transaction)
+                fact_matches.then(|| initiated_transaction)
             })
             .collect();
         res.sort();
@@ -272,21 +279,28 @@ impl Execution {
         res
     }
 
-    pub fn get_act_impediments(&self, model: &Model, transaction: &Transaction, parent_transaction_id: TransactionInstanceId, act: &CPAct) -> Option<Vec<String>> {
+    pub fn get_act_impediments(&self, model: &Model, transaction: &Transaction, parent_transaction_instance_id_o: &Option<TransactionInstanceId>, act: &CPAct) -> Option<Vec<String>> {
+        // println!("get_act_impediments(transaction: {}, parent: {:?}, act: {})", transaction.t_id, parent_transaction_instance_id_o, act);
         let impediments: Vec<&Impediment> = transaction.impediments.iter().filter(|imp1| imp1.impeded_act == *act).collect();
         if impediments.is_empty() {
             None
         } else {
             let mut res: Vec<String> = Vec::new();
             for imp in &impediments {
-                let transactions_instances_of_impediment = self.get_instances_of_transaction(&imp.impeding_transaction_id, Some(parent_transaction_id.clone()));
-                if transactions_instances_of_impediment.is_empty() {
-                    let transaction = model.get_transaction(&imp.impeding_transaction_id);
-                    res.push(format!("Waiting for an instance of {}: {} - {}", transaction.t_id, transaction.name, imp.impeding_c_fact));
-                } else {
-                    for t_i in transactions_instances_of_impediment {
+                let impeding_transaction = model.get_transaction(&imp.impeding_transaction_id);
+                let impeding_transaction_instances = self.get_instances_of_transaction(&impeding_transaction.id, parent_transaction_instance_id_o);
+                // println!("imp_transaction: {}, imp_transaction_instances with parent {:?}: {:?}", impeding_transaction.t_id, parent_transaction_instance_id_o, impeding_transaction_instances);
+                if impeding_transaction_instances.is_empty() {
+                    // We must now check if the instance is actually required (e.g. if min multiplicity of initiation is > 0) but if yes, report the impeding transaction
+                    if let Some(initiation) = model.get_initiation_of_transaction(impeding_transaction) {
+                        if initiation.multiplicity.min > 0 {
+                            res.push(format!("Waiting for an instance of {}: {} - {}", impeding_transaction.t_id, impeding_transaction.name, imp.impeding_c_fact));
+                        }
+                    }
+                } else { // There are impeding transaction instances, check if they reached the required fact
+                    for t_i in impeding_transaction_instances {
                         if self.get_c_p_world_item_by_fact(&t_i.id, &CPFact::CFact(imp.impeding_c_fact.clone())).is_none() {
-                            res.push(format!("Waiting for transaction instance {} reaching fact {}", t_i.id.to_string(), imp.impeding_c_fact));
+                            res.push(format!("Waiting for transaction instance {} being fact {}", t_i.id.to_string(), imp.impeding_c_fact));
                         }
                     }
                 };

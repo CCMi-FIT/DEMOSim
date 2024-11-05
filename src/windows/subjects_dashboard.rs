@@ -1,8 +1,7 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
 use crate::execution::{Execution, TransactionInstanceId};
-use crate::model::{CPAct, Model, SubjectId, Transaction, TransactionId};
-use crate::model::CAct::Request;
+use crate::model::{CAct, CPAct, Model, SubjectId, Transaction, TransactionId};
 
 #[inline]
 pub fn subjects_tabs_ui(ui: &mut egui::Ui, app_context: &mut AppContext) {
@@ -33,14 +32,13 @@ fn initiate_transactions_ui<F>(
     model: &Model,
     execution: &Execution,
     startable_transactions: &Vec<&Transaction>,
-    parent_transaction_instance_id_o: Option<TransactionInstanceId>,
+    parent_transaction_instance_id_o: &Option<TransactionInstanceId>,
     modal_opened: bool,
     open_modal: &mut F,
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
     ui.horizontal(|ui| {
         for s_t in startable_transactions {
-            let impediments_msgs_o = parent_transaction_instance_id_o.as_ref()
-                .and_then(|parent_tran_inst_id| execution.get_act_impediments(model, s_t, parent_tran_inst_id.clone(), &CPAct::CAct(Request)))
+            let impediments_msgs_o = execution.get_act_impediments(model, s_t, parent_transaction_instance_id_o, &CPAct::CAct(CAct::Request))
                 .map(|msgs| msgs.join("\n"));
             let enabled = !modal_opened && impediments_msgs_o.is_none();
             ui.add_enabled_ui(enabled, |ui| {
@@ -58,12 +56,12 @@ fn startable_transactions_ui<F>(
     ui: &mut egui::Ui,
     app_context: &mut AppContext,
     subject_id: &SubjectId,
-    parent_transaction_instance_id: Option<TransactionInstanceId>,
+    parent_transaction_instance_id_o: &Option<TransactionInstanceId>,
     modal_opened: bool,
     open_modal: &mut F,
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
     let startable_transactions = app_context.model.directly_startable_transactions(subject_id);
-    initiate_transactions_ui(ui, &app_context.model, &app_context.execution, &startable_transactions, parent_transaction_instance_id, modal_opened, open_modal);
+    initiate_transactions_ui(ui, &app_context.model, &app_context.execution, &startable_transactions, parent_transaction_instance_id_o, modal_opened, open_modal);
     ui.add_space(10.0);
     ui.separator();
 }
@@ -94,14 +92,13 @@ fn agenda_ui<F>(
 
             for agenda_item in &agenda {
                 let transaction_instance = execution.get_transaction_instance(&agenda_item.transaction_instance_id).clone();
-                let transaction_instance_parent = transaction_instance.parent_transaction_instance_id.clone().unwrap_or_else(|| transaction_instance.id.clone());
                 let transaction = model.get_transaction(&transaction_instance.transaction_id);
                 let performer = model.get_subject(&agenda_item.performer_id);
                 let next_acts = agenda_item.fact.next_acts();
                 let mut selected_next_act = subject_context.get_selected_next_act(&subject_id, &transaction_instance.id)
                     .unwrap_or(&next_acts[0].clone()).to_owned();
                 let mut committed = false;
-                let impediments_msgs_o = execution.get_act_impediments(model, &transaction, transaction_instance_parent, &selected_next_act).map(|msgs| msgs.join("\n"));
+                let impediments_msgs_o = execution.get_act_impediments(model, &transaction, &Some(transaction_instance.id.clone()), &selected_next_act).map(|msgs| msgs.join("\n"));
 
                 ui.label(agenda_item.timestamp.to_string());
                 ui.label(format!("{}: {}", transaction.t_id.to_string(), transaction.name.clone()));
@@ -132,7 +129,7 @@ fn agenda_ui<F>(
                     subject_context.selected_next_act.insert((subject_id.clone(), transaction_instance.id.clone()), selected_next_act);
                 }
                 let startable_subtransactions = execution.startable_subtransactions(model, &transaction_instance, subject_id);
-                initiate_transactions_ui(ui, model, execution, &startable_subtransactions, Some(transaction_instance.id), modal_opened, &mut open_modal);
+                initiate_transactions_ui(ui, model, execution, &startable_subtransactions, &Some(transaction_instance.id), modal_opened, &mut open_modal);
                 ui.end_row();
             }
         });
@@ -148,7 +145,7 @@ pub fn subject_pane_ui<F>(
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
     ui.strong("Initiate transaction");
     ui.add_space(5.0);
-    startable_transactions_ui(ui, app_context, subject_id, None, modal_opened, &mut open_modal);
+    startable_transactions_ui(ui, app_context, subject_id, &None, modal_opened, &mut open_modal);
     ui.strong("Agenda");
     ui.add_space(5.0);
     agenda_ui(ui, app_context, subject_id, modal_opened, &mut open_modal);
