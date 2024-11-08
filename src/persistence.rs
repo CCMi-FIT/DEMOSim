@@ -1,9 +1,9 @@
 #[cfg(target_arch = "wasm32")]
 mod web_persistence {
-    use web_sys::window;
+    // use web_sys::window;
     use crate::model::Model;
 
-    pub fn save_model(model: &Model) -> std::io::Result<()> {
+    pub fn save_model(_model: &Model) -> std::io::Result<()> {
         // if let Ok(serialized) = ron::ser::to_string_pretty(model, ron::ser::PrettyConfig::default()) {
         //     if let Some(window) = window() {
         //         if let Some(local_storage) = window.local_storage().unwrap() {
