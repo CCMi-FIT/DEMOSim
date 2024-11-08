@@ -3,27 +3,26 @@ mod web_persistence {
     use web_sys::window;
     use crate::model::Model;
 
-    pub fn save_model(model: &[Model]) {
-        if let Ok(serialized) = ron::ser::to_string_pretty(model, ron::ser::PrettyConfig::default()) {
-            if let Some(window) = window() {
-                if let Some(local_storage) = window.local_storage().unwrap() {
-                    let _ = local_storage.set_item("model", &serialized);
-                }
-            }
-        }
+    pub fn save_model(model: &Model) -> std::io::Result<()> {
+        // if let Ok(serialized) = ron::ser::to_string_pretty(model, ron::ser::PrettyConfig::default()) {
+        //     if let Some(window) = window() {
+        //         if let Some(local_storage) = window.local_storage().unwrap() {
+        //             let _ = local_storage.set_item("model", &serialized);
+        //         }
+        //     }
+        // }
+        Ok(())
     }
 
-    pub fn load_model() -> Vec<Model> {
-        if let Some(window) = window() {
-            if let Some(local_storage) = window.local_storage().unwrap() {
-                if let Ok(Some(data)) = local_storage.get_item("model") {
-                    if let Ok(model) = ron::from_str(&data) {
-                        return model;
-                    }
-                }
-            }
-        }
-        Vec::new()
+    pub fn load_model() -> std::io::Result<Option<Model>> {
+    //     if let Some(window) = window() {
+    //         if let Some(local_storage) = window.local_storage().unwrap() {
+    //             if let Ok(Some(data)) = local_storage.get_item("model") {
+    //                 return ron::from_str(&data);
+    //             }
+    //         }
+    //     }
+        Ok(None)
     }
 }
 

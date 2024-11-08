@@ -85,31 +85,31 @@ impl eframe::App for DemosimApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                // NOTE: no File->Quit on web pages!
-                let is_web = cfg!(target_arch = "wasm32");
-                if !is_web {
-                    ui.menu_button("File", |ui| {
-                        if ui.button("New model").clicked() {
+                ui.menu_button("File", |ui| {
+                    if ui.button("New model").clicked() {
+                        self.app_context = Default::default();
+                        ui.close_menu();
+                    }
+                    if ui.button("Load model...").clicked() {
+                        if let Some(model) = load_model().unwrap() {
                             self.app_context = Default::default();
-                            ui.close_menu();
+                            self.app_context.model = model;
                         }
-                        if ui.button("Load model...").clicked() {
-                            if let Some(model) = load_model().unwrap() {
-                                self.app_context = Default::default();
-                                self.app_context.model = model;
-                            }
-                            ui.close_menu();
-                        }
-                        if ui.button("Save model...").clicked() {
-                            save_model(&self.app_context.model).unwrap();
-                            ui.close_menu();
-                        }
+                        ui.close_menu();
+                    }
+                    if ui.button("Save model...").clicked() {
+                        save_model(&self.app_context.model).unwrap();
+                        ui.close_menu();
+                    }
+                    // NOTE: no File->Quit on web pages!
+                    let is_web = cfg!(target_arch = "wasm32");
+                    if !is_web {
                         if ui.button("Quit").clicked() {
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
-                    });
-                    ui.add_space(16.0);
-                }
+                    }
+                });
+                ui.add_space(16.0);
                 egui::widgets::global_theme_preference_buttons(ui);
             });
         });
