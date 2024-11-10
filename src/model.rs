@@ -13,11 +13,11 @@ pub enum CAct {
     Declare,
     Accept,
     Reject,
-    RevokeRequest,
-    RevokePromise,
-    RevokeDecline,
-    RevokeAccept,
-    RevokeReject,
+    // RevokeRequest,
+    // RevokePromise,
+    // RevokeDecline,
+    // RevokeAccept,
+    // RevokeReject,
 }
 
 impl CAct {
@@ -30,11 +30,11 @@ impl CAct {
             Declare => CFact::Declared,
             Accept => CFact::Accepted,
             Reject => CFact::Rejected,
-            RevokeRequest => CFact::RequestRevoked,
-            RevokePromise => CFact::PromiseRevoked,
-            RevokeDecline => CFact::DeclineRevoked,
-            RevokeAccept => CFact::AcceptRevoked,
-            RevokeReject => CFact::RejectRevoked,
+            // RevokeRequest => CFact::RequestRevoked,
+            // RevokePromise => CFact::PromiseRevoked,
+            // RevokeDecline => CFact::DeclineRevoked,
+            // RevokeAccept => CFact::AcceptRevoked,
+            // RevokeReject => CFact::RejectRevoked,
         }
     }
 }
@@ -55,11 +55,11 @@ impl std::fmt::Display for CAct {
             Declare => write!(f, "Declare"),
             Accept => write!(f, "Accept"),
             Reject => write!(f, "Reject"),
-            RevokeRequest => write!(f, "Revoke Request"),
-            RevokePromise => write!(f, "Revoke Promise"),
-            RevokeDecline => write!(f, "Revoke Decline"),
-            RevokeAccept => write!(f, "Revoke Accept"),
-            RevokeReject => write!(f, "Revoke Reject"),
+            // RevokeRequest => write!(f, "Revoke Request"),
+            // RevokePromise => write!(f, "Revoke Promise"),
+            // RevokeDecline => write!(f, "Revoke Decline"),
+            // RevokeAccept => write!(f, "Revoke Accept"),
+            // RevokeReject => write!(f, "Revoke Reject"),
         }
     }
 }
@@ -108,11 +108,11 @@ pub enum CFact {
     Declared,
     Accepted,
     Rejected,
-    RequestRevoked,
-    PromiseRevoked,
-    DeclineRevoked,
-    AcceptRevoked,
-    RejectRevoked,
+    // RequestRevoked,
+    // PromiseRevoked,
+    // DeclineRevoked,
+    // AcceptRevoked,
+    // RejectRevoked,
 }
 
 impl Default for CFact {
@@ -131,11 +131,11 @@ impl std::fmt::Display for CFact {
             Declared => write!(f, "Declared"),
             Accepted => write!(f, "Accepted"),
             Rejected => write!(f, "Rejected"),
-            RequestRevoked => write!(f, "Request Revoked"),
-            PromiseRevoked => write!(f, "Promise Revoked"),
-            DeclineRevoked => write!(f, "Decline Revoked"),
-            AcceptRevoked => write!(f, "Accept Revoked"),
-            RejectRevoked => write!(f, "Reject Revoked"),
+            // RequestRevoked => write!(f, "Request Revoked"),
+            // PromiseRevoked => write!(f, "Promise Revoked"),
+            // DeclineRevoked => write!(f, "Decline Revoked"),
+            // AcceptRevoked => write!(f, "Accept Revoked"),
+            // RejectRevoked => write!(f, "Reject Revoked"),
         }
     }
 }

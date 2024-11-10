@@ -160,11 +160,11 @@ impl Execution {
             Declared => transaction_instance.initiator_id.clone(),
             Accepted => transaction_instance.executor_id.clone(),
             Rejected => transaction_instance.executor_id.clone(),
-            RequestRevoked => transaction_instance.executor_id.clone(),
-            PromiseRevoked => transaction_instance.initiator_id.clone(),
-            DeclineRevoked => transaction_instance.initiator_id.clone(),
-            AcceptRevoked => transaction_instance.executor_id.clone(),
-            RejectRevoked => transaction_instance.executor_id.clone(),
+            // RequestRevoked => transaction_instance.executor_id.clone(),
+            // PromiseRevoked => transaction_instance.initiator_id.clone(),
+            // DeclineRevoked => transaction_instance.initiator_id.clone(),
+            // AcceptRevoked => transaction_instance.executor_id.clone(),
+            // RejectRevoked => transaction_instance.executor_id.clone(),
         }
     }
 
