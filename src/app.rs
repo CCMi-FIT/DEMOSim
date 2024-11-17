@@ -1,8 +1,20 @@
 use std::collections::HashMap;
 use crate::execution::{Execution, TransactionInstanceId};
 use crate::model::{CPAct, Model, SubjectId, TransactionId};
-use crate::persistence::{load_model, save_model};
 use crate::windows::EguiWindows;
+use std::future::Future;
+use std::sync::mpsc::{channel, Receiver, Sender};
+
+#[cfg(not(target_arch = "wasm32"))]
+fn execute<F: Future<Output = ()> + Send + 'static>(f: F) {
+    // this is stupid... use any executor of your choice instead
+    std::thread::spawn(move || futures::executor::block_on(f));
+}
+
+#[cfg(target_arch = "wasm32")]
+fn execute<F: Future<Output = ()> + 'static>(f: F) {
+    wasm_bindgen_futures::spawn_local(f);
+}
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
@@ -52,11 +64,23 @@ pub struct AppContext {
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct DemosimApp {
+    #[serde(skip)]
+    model_text_channel: (Sender<String>, Receiver<String>),
     egui_windows: EguiWindows,
     app_context: AppContext,
+}
+
+impl Default for DemosimApp {
+    fn default() -> Self {
+        Self {
+            model_text_channel: channel(),
+            egui_windows: EguiWindows::default(),
+            app_context: AppContext::default(),
+        }
+    }
 }
 
 impl DemosimApp {
@@ -73,6 +97,14 @@ impl DemosimApp {
 
         Default::default()
     }
+
+    fn try_load_model(&mut self) {
+        if let Ok(model_text) = self.model_text_channel.1.try_recv() {
+            let model: Model = ron::from_str(&model_text).unwrap();
+            self.app_context.model = model;
+        }
+    }
+
 }
 
 impl eframe::App for DemosimApp {
@@ -83,6 +115,7 @@ impl eframe::App for DemosimApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.try_load_model();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -90,15 +123,36 @@ impl eframe::App for DemosimApp {
                         self.app_context = Default::default();
                         ui.close_menu();
                     }
-                    if ui.button("Load model...").clicked() {
-                        if let Some(model) = load_model().unwrap() {
-                            self.app_context = Default::default();
-                            self.app_context.model = model;
-                        }
+                    if ui.button("📂 Load model...").clicked() {
+                        let sender = self.model_text_channel.0.clone();
+                        let task = rfd::AsyncFileDialog::new()
+                            .set_title("Load model")
+                            .add_filter("DEMOsim", &["*.dms"])
+                            .pick_file();
+                        let ctx = ui.ctx().clone();
+                        execute(async move {
+                            let file = task.await;
+                            if let Some(file) = file {
+                                let text = file.read().await;
+                                let _ = sender.send(String::from_utf8_lossy(&text).to_string());
+                                ctx.request_repaint();
+                            }
+                        });
                         ui.close_menu();
                     }
-                    if ui.button("Save model...").clicked() {
-                        save_model(&self.app_context.model).unwrap();
+                    if ui.button("💾 Save model...").clicked() {
+                        let task = rfd::AsyncFileDialog::new()
+                            .set_title("Save model")
+                            .add_filter("DEMOsim", &["*.dms"])
+                            .set_file_name(format!("{}.dms", self.app_context.model.name))
+                            .save_file();
+                        let model_text = ron::ser::to_string_pretty(&self.app_context.model, ron::ser::PrettyConfig::default()).unwrap();
+                        execute(async move {
+                            let file = task.await;
+                            if let Some(file) = file {
+                                _ = file.write(model_text.as_bytes()).await;
+                            }
+                        });
                         ui.close_menu();
                     }
                     // NOTE: no File->Quit on web pages!
