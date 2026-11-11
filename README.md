@@ -6,6 +6,9 @@ This is an educational [Design & Engineering Method for Organisations](https://c
 
 Currently, just the Standard Transaction Pattern is implemented.
 
+For development and debugging, see the [DEMO theory reference](docs/demo-theory.md),
+which summarises the supplied textbook and distinguishes its rules from current implementation limitations.
+
 ## Running
 
 The web build runs at [https://ccmi-fit.github.io/DEMOSim](https://ccmi-fit.github.io/DEMOSim).
