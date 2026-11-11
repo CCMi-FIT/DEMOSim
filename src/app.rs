@@ -101,11 +101,17 @@ impl DemosimApp {
     fn try_load_model(&mut self) {
         if let Ok(model_text) = self.model_text_channel.1.try_recv() {
             let model: Model = ron::from_str(&model_text).unwrap();
-            self.app_context.model = model;
+            self.app_context = AppContext {
+                model,
+                ..Default::default()
+            };
         }
     }
 
 }
+
+#[cfg(test)]
+mod tests;
 
 impl eframe::App for DemosimApp {
     /// Called by the frame work to save state before shutdown.
@@ -127,7 +133,7 @@ impl eframe::App for DemosimApp {
                         let sender = self.model_text_channel.0.clone();
                         let task = rfd::AsyncFileDialog::new()
                             .set_title("Load model")
-                            .add_filter("DEMOsim", &["*.dms"])
+                            .add_filter("DEMOsim", &["dms"])
                             .pick_file();
                         let ctx = ui.ctx().clone();
                         execute(async move {
@@ -143,7 +149,7 @@ impl eframe::App for DemosimApp {
                     if ui.button("💾 Save model...").clicked() {
                         let task = rfd::AsyncFileDialog::new()
                             .set_title("Save model")
-                            .add_filter("DEMOsim", &["*.dms"])
+                            .add_filter("DEMOsim", &["dms"])
                             .set_file_name(format!("{}.dms", self.app_context.model.name))
                             .save_file();
                         let model_text = ron::ser::to_string_pretty(&self.app_context.model, ron::ser::PrettyConfig::default()).unwrap();
