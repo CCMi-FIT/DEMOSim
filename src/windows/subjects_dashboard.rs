@@ -1,5 +1,6 @@
 use egui::TextWrapMode;
 use crate::app::AppContext;
+use crate::components::section_label_ui;
 use crate::execution::{Execution, TransactionInstanceId};
 use crate::model::{CAct, CPAct, Model, SubjectId, Transaction, TransactionId};
 
@@ -62,8 +63,6 @@ fn startable_transactions_ui<F>(
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
     let startable_transactions = app_context.model.directly_startable_transactions(subject_id);
     initiate_transactions_ui(ui, &app_context.model, &app_context.execution, &startable_transactions, parent_transaction_instance_id_o, modal_opened, open_modal);
-    ui.add_space(10.0);
-    ui.separator();
 }
 
 #[inline]
@@ -143,11 +142,16 @@ pub fn subject_pane_ui<F>(
     modal_opened: bool,
     mut open_modal: F,
 ) where F: FnMut(Option<TransactionInstanceId>, TransactionId) {
-    ui.strong("Initiate transaction");
-    ui.add_space(5.0);
+    section_label_ui(ui, "Startable transactions");
     startable_transactions_ui(ui, app_context, subject_id, &None, modal_opened, &mut open_modal);
-    ui.strong("Agenda");
-    ui.add_space(5.0);
+    section_label_ui(ui, "Agenda");
     agenda_ui(ui, app_context, subject_id, modal_opened, &mut open_modal);
+    section_label_ui(ui, "Transaction Instances");
+    crate::components::transactions_instances_ui(
+        ui,
+        app_context,
+        |t_i| t_i.initiator_id == *subject_id || t_i.executor_id == *subject_id,
+        false,
+    );
 }
 

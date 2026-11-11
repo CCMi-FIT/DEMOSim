@@ -1,8 +1,16 @@
-use egui::{Color32, RichText};
 use crate::app::AppContext;
+use crate::execution::TransactionInstance;
 use crate::model::{CFact, CPFact};
+use egui::{Color32, RichText};
 
-pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
+pub fn transactions_instances_ui<F>(
+    ui: &mut egui::Ui,
+    app_context: &mut AppContext,
+    filter_fn: F,
+    can_delete: bool,
+) where
+    F: Fn(&TransactionInstance) -> bool,
+{
     let model = &app_context.model;
     let execution = &mut app_context.execution;
     let mut to_delete = Vec::new();
@@ -18,11 +26,19 @@ pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
             ui.strong("Executor Subject");
             ui.strong("Last Fact");
             ui.end_row();
-            for t_i in execution.transactions_instances.iter() {
+            for t_i in execution
+                .transactions_instances
+                .iter()
+                .filter(|ti| filter_fn(ti))
+            {
                 let transaction = model.get_transaction(&t_i.transaction_id);
                 let initiator_subject = model.get_subject(&t_i.initiator_id);
                 let executor_subject = model.get_subject(&t_i.executor_id);
-                let last_fact = execution.get_facts_for_transaction_instance(&t_i.id).last().unwrap().to_fact();
+                let last_fact = execution
+                    .get_facts_for_transaction_instance(&t_i.id)
+                    .last()
+                    .unwrap()
+                    .to_fact();
                 let render_label = |ui: &mut egui::Ui, text: String| -> egui::Response {
                     match last_fact {
                         CPFact::CFact(CFact::Accepted) => ui.colored_label(Color32::GREEN, text),
@@ -34,16 +50,22 @@ pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
                 if app_context.hi_transaction_instance_id_o == Some(t_i.id.clone()) {
                     id_label.highlight();
                 }
-                render_label(ui, format!("{}: {}", transaction.t_id.clone(), transaction.name.clone()));
-                render_label(ui, match &t_i.parent_transaction_instance_id {
-                    None => "--".to_string(),
-                    Some(id) => id.to_string(),
-                });
+                render_label(
+                    ui,
+                    format!("{}: {}", transaction.t_id.clone(), transaction.name.clone()),
+                );
+                render_label(
+                    ui,
+                    match &t_i.parent_transaction_instance_id {
+                        None => "--".to_string(),
+                        Some(id) => id.to_string(),
+                    },
+                );
                 render_label(ui, t_i.product_instance.clone());
                 render_label(ui, initiator_subject.name.clone());
                 render_label(ui, executor_subject.name.clone());
                 render_label(ui, last_fact.to_string());
-                if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
+                if can_delete && ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
                     to_delete.push(t_i.id.clone());
                 }
                 ui.end_row();
@@ -54,3 +76,5 @@ pub fn view(ui: &mut egui::Ui, app_context: &mut AppContext) {
     }
 }
 
+#[cfg(test)]
+mod tests;

@@ -6,7 +6,6 @@ mod subjects;
 mod adt;
 mod subjects_dashboard;
 mod transaction_initiate_modal;
-mod transactions_instances;
 mod c_p_world;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
@@ -67,7 +66,6 @@ impl EguiWindows {
             .vscroll(true)
             .show(ctx, |ui| {
                 subjects_dashboard::subjects_tabs_ui(ui, app_context);
-                ui.add_space(10.0);
                 if let Some(fp_id) = app_context.subject_context.focused_subject_id_o.clone() {
                     subjects_dashboard::subject_pane_ui(
                         ui,
@@ -109,7 +107,7 @@ impl EguiWindows {
             .open(transactions_instances)
             .vscroll(true)
             .show(ctx, |ui| {
-                transactions_instances::view(ui, app_context)
+                crate::components::transactions_instances_ui(ui, app_context, |_| true, true)
             });
         egui::Window::new("Coordination / Production World")
             .open(c_p_world)
