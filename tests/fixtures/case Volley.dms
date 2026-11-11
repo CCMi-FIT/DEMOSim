@@ -1,0 +1,72 @@
+(
+    name: "Case Volley",
+    actor_roles: [
+        (
+            id: ("eb92fd3b-be8a-497a-9412-3d484db6e2c9"),
+            name: "aspirant member",
+        ),
+        (
+            id: ("43b682d7-580f-4497-8f68-3d8b6dbee6ad"),
+            name: "membership starter",
+        ),
+        (
+            id: ("e0775494-c4a8-403f-92bf-bf053ad8b5b5"),
+            name: "membership payer",
+        ),
+    ],
+    transactions: [
+        (
+            id: ("a0e280cd-1d9e-48fe-b877-891082bd5bea"),
+            t_id: "T1",
+            name: "membership starting",
+            product: "[mebership] is started",
+            initiator_id: ("eb92fd3b-be8a-497a-9412-3d484db6e2c9"),
+            executor_id: ("43b682d7-580f-4497-8f68-3d8b6dbee6ad"),
+            initiations: [
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("2f8db385-285d-4b8e-93b1-a2b760235e8a"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+            ],
+            impediments: [
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("2f8db385-285d-4b8e-93b1-a2b760235e8a"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("2f8db385-285d-4b8e-93b1-a2b760235e8a"),
+            t_id: "T2",
+            name: "membership paying",
+            product: "the first fee for [membership] is paid",
+            initiator_id: ("43b682d7-580f-4497-8f68-3d8b6dbee6ad"),
+            executor_id: ("e0775494-c4a8-403f-92bf-bf053ad8b5b5"),
+            initiations: [],
+            impediments: [],
+        ),
+    ],
+    subjects: [
+        (
+            id: ("67402e1e-c813-4a36-ad2a-4a2d0e1f6074"),
+            name: "customer",
+        ),
+        (
+            id: ("7b0d6d67-9391-4779-a62c-efa4e54ec546"),
+            name: "Voley administrator",
+        ),
+    ],
+    adt: (
+        mappings: {
+            (("eb92fd3b-be8a-497a-9412-3d484db6e2c9"), ("67402e1e-c813-4a36-ad2a-4a2d0e1f6074")): Authorisation,
+            (("43b682d7-580f-4497-8f68-3d8b6dbee6ad"), ("7b0d6d67-9391-4779-a62c-efa4e54ec546")): Authorisation,
+            (("e0775494-c4a8-403f-92bf-bf053ad8b5b5"), ("67402e1e-c813-4a36-ad2a-4a2d0e1f6074")): Authorisation,
+        },
+    ),
+)

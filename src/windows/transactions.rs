@@ -1,12 +1,25 @@
+use crate::execution::Execution;
+use crate::model::{
+    all_acts, all_c_acts, all_c_facts, ActorRole, CAct, CFact, CPAct, Impediment, Initiation,
+    Multiplicity, Transaction, TransactionId,
+};
 use eframe::epaint::Color32;
 use egui::{RichText, TextWrapMode};
 use std::collections::{HashMap, HashSet};
-use crate::model::{all_acts, all_c_acts, all_c_facts, ActorRole, CAct, CFact, CPAct, Impediment, Initiation, Multiplicity, Transaction, TransactionId};
 
-pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
-    let available_transactions: Vec<&Transaction> = transactions.iter().filter(|tr| **tr != *transaction).collect();
-    let transactions_map: HashMap<TransactionId, String> = available_transactions.iter()
-        .map(|tr| (tr.id.clone(), tr.t_id.clone())).collect();
+pub fn initiations_ui(
+    ui: &mut egui::Ui,
+    transactions: &[Transaction],
+    transaction: &mut Transaction,
+) {
+    let available_transactions: Vec<&Transaction> = transactions
+        .iter()
+        .filter(|tr| **tr != *transaction)
+        .collect();
+    let transactions_map: HashMap<TransactionId, String> = available_transactions
+        .iter()
+        .map(|tr| (tr.id.clone(), tr.t_id.clone()))
+        .collect();
     let mut to_delete = Vec::new();
 
     ui.vertical(|ui| {
@@ -15,29 +28,57 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
                     to_delete.push(in_index);
                 }
-                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, "Initiating-CAct", in_index))
-                    .selected_text(initiation.initiating_c_fact.to_string())
-                    .show_ui(ui, |ui| {
-                        for initiating_fact in all_c_facts() {
-                            ui.selectable_value(&mut initiation.initiating_c_fact, initiating_fact.to_owned(), initiating_fact.to_string());
-                        }
-                    });
+                egui::ComboBox::from_id_salt(format!(
+                    "{}_{}_{}",
+                    transaction.id, "Initiating-CAct", in_index
+                ))
+                .selected_text(initiation.initiating_c_fact.to_string())
+                .show_ui(ui, |ui| {
+                    for initiating_fact in all_c_facts() {
+                        ui.selectable_value(
+                            &mut initiation.initiating_c_fact,
+                            initiating_fact.to_owned(),
+                            initiating_fact.to_string(),
+                        );
+                    }
+                });
                 ui.add_space(5.0);
-                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, in_index, "Initiated-Transaction"))
-                    .selected_text(transactions_map.get(&initiation.initiated_transaction_id).unwrap_or(&"tr not found".to_string()).to_owned())
-                    .show_ui(ui, |ui| {
-                        for transaction in available_transactions.iter() {
-                            ui.selectable_value(&mut initiation.initiated_transaction_id, transaction.id.clone(), transactions_map.get(&transaction.id).unwrap_or(&"tr not found".to_string()));
-                        }
-                    });
+                egui::ComboBox::from_id_salt(format!(
+                    "{}_{}_{}",
+                    transaction.id, in_index, "Initiated-Transaction"
+                ))
+                .selected_text(
+                    transactions_map
+                        .get(&initiation.initiated_transaction_id)
+                        .unwrap_or(&"tr not found".to_string())
+                        .to_owned(),
+                )
+                .show_ui(ui, |ui| {
+                    for transaction in available_transactions.iter() {
+                        ui.selectable_value(
+                            &mut initiation.initiated_transaction_id,
+                            transaction.id.clone(),
+                            transactions_map
+                                .get(&transaction.id)
+                                .unwrap_or(&"tr not found".to_string()),
+                        );
+                    }
+                });
                 ui.add_space(5.0);
-                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, in_index, "Initiated-CAct"))
-                    .selected_text(initiation.initiated_c_act.to_string())
-                    .show_ui(ui, |ui| {
-                        for c_act in all_c_acts().iter() {
-                            ui.selectable_value(&mut initiation.initiated_c_act, c_act.clone(), c_act.to_string());
-                        }
-                    });
+                egui::ComboBox::from_id_salt(format!(
+                    "{}_{}_{}",
+                    transaction.id, in_index, "Initiated-CAct"
+                ))
+                .selected_text(initiation.initiated_c_act.to_string())
+                .show_ui(ui, |ui| {
+                    for c_act in all_c_acts().iter() {
+                        ui.selectable_value(
+                            &mut initiation.initiated_c_act,
+                            c_act.clone(),
+                            c_act.to_string(),
+                        );
+                    }
+                });
                 ui.add_space(5.0);
                 if initiation.multiplicity_tmp_str.is_empty() {
                     initiation.multiplicity_tmp_str = initiation.multiplicity.to_string();
@@ -47,13 +88,24 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                     Err(_) => Some(Color32::RED),
                     Ok(_) => None,
                 };
-                ui.add(egui::TextEdit::singleline(&mut initiation.multiplicity_tmp_str).min_size([50.0, 20.0].into()).text_color_opt(color));
+                ui.add(
+                    egui::TextEdit::singleline(&mut initiation.multiplicity_tmp_str)
+                        .min_size([50.0, 20.0].into())
+                        .text_color_opt(color),
+                );
                 if let Ok(multiplicity) = multiplicity_r {
                     initiation.multiplicity = multiplicity;
                 }
             });
         }
-        if ui.button(RichText::new("➕").color(Color32::GREEN)).clicked() {
+        if ui
+            .add_enabled(
+                !available_transactions.is_empty(),
+                egui::Button::new(RichText::new("➕").color(Color32::GREEN)),
+            )
+            .on_disabled_hover_text("Create another transaction kind first")
+            .clicked()
+        {
             transaction.initiations.push(Initiation {
                 initiating_c_fact: CFact::default(),
                 initiated_transaction_id: available_transactions[0].id.clone(),
@@ -68,10 +120,19 @@ pub fn initiations_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
     });
 }
 
-pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transaction: &mut Transaction) {
-    let available_transactions: Vec<&Transaction> = transactions.iter().filter(|tr| **tr != *transaction).collect();
-    let transactions_map: HashMap<TransactionId, String> = available_transactions.iter()
-        .map(|tr| (tr.id.clone(), tr.t_id.clone())).collect();
+pub fn impediments_ui(
+    ui: &mut egui::Ui,
+    transactions: &[Transaction],
+    transaction: &mut Transaction,
+) {
+    let available_transactions: Vec<&Transaction> = transactions
+        .iter()
+        .filter(|tr| **tr != *transaction)
+        .collect();
+    let transactions_map: HashMap<TransactionId, String> = available_transactions
+        .iter()
+        .map(|tr| (tr.id.clone(), tr.t_id.clone()))
+        .collect();
     let mut to_delete = Vec::new();
 
     ui.vertical(|ui| {
@@ -80,35 +141,70 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
                 if ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
                     to_delete.push(imp_index);
                 }
-                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, "Impediment-CPAct", imp_index))
-                    .selected_text(impediment.impeded_act.to_string())
-                    .show_ui(ui, |ui| {
-                        for impeded_act in all_acts() {
-                            ui.selectable_value(&mut impediment.impeded_act, impeded_act.to_owned(), impeded_act.to_string());
-                        }
-                    });
+                egui::ComboBox::from_id_salt(format!(
+                    "{}_{}_{}",
+                    transaction.id, "Impediment-CPAct", imp_index
+                ))
+                .selected_text(impediment.impeded_act.to_string())
+                .show_ui(ui, |ui| {
+                    for impeded_act in all_acts() {
+                        ui.selectable_value(
+                            &mut impediment.impeded_act,
+                            impeded_act.to_owned(),
+                            impeded_act.to_string(),
+                        );
+                    }
+                });
                 ui.add_space(5.0);
-                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-Transaction"))
-                    .selected_text(transactions_map.get(&impediment.impeding_transaction_id).unwrap_or(&"tr not found".to_string()).to_owned())
-                    .show_ui(ui, |ui| {
-                        for transaction in available_transactions.iter() {
-                            ui.selectable_value(&mut impediment.impeding_transaction_id, transaction.id.clone(), transactions_map.get(&transaction.id).unwrap_or(&"tr not found".to_string()));
-                        }
-                    });
-                egui::ComboBox::from_id_salt(format!("{}_{}_{}", transaction.id, imp_index, "Impeding-CFact"))
-                    .selected_text(impediment.impeding_c_fact.to_string())
-                    .show_ui(ui, |ui| {
-                        for c_fact in all_c_facts().iter() {
-                            ui.selectable_value(&mut impediment.impeding_c_fact, c_fact.clone(), c_fact.to_string());
-                        }
-                    });
+                egui::ComboBox::from_id_salt(format!(
+                    "{}_{}_{}",
+                    transaction.id, imp_index, "Impeding-Transaction"
+                ))
+                .selected_text(
+                    transactions_map
+                        .get(&impediment.impeding_transaction_id)
+                        .unwrap_or(&"tr not found".to_string())
+                        .to_owned(),
+                )
+                .show_ui(ui, |ui| {
+                    for transaction in available_transactions.iter() {
+                        ui.selectable_value(
+                            &mut impediment.impeding_transaction_id,
+                            transaction.id.clone(),
+                            transactions_map
+                                .get(&transaction.id)
+                                .unwrap_or(&"tr not found".to_string()),
+                        );
+                    }
+                });
+                egui::ComboBox::from_id_salt(format!(
+                    "{}_{}_{}",
+                    transaction.id, imp_index, "Impeding-CFact"
+                ))
+                .selected_text(impediment.impeding_c_fact.to_string())
+                .show_ui(ui, |ui| {
+                    for c_fact in all_c_facts().iter() {
+                        ui.selectable_value(
+                            &mut impediment.impeding_c_fact,
+                            c_fact.clone(),
+                            c_fact.to_string(),
+                        );
+                    }
+                });
             });
         }
-        if ui.button(RichText::new("➕").color(Color32::GREEN)).clicked() {
+        if ui
+            .add_enabled(
+                !available_transactions.is_empty(),
+                egui::Button::new(RichText::new("➕").color(Color32::GREEN)),
+            )
+            .on_disabled_hover_text("Create another transaction kind first")
+            .clicked()
+        {
             transaction.impediments.push(Impediment {
                 impeded_act: CPAct::CAct(CAct::default()),
-                    impeding_transaction_id: available_transactions[0].id.clone(),
-                    impeding_c_fact: CFact::default(),
+                impeding_transaction_id: available_transactions[0].id.clone(),
+                impeding_c_fact: CFact::default(),
             });
         }
         for index in to_delete.into_iter().rev() {
@@ -117,11 +213,16 @@ pub fn impediments_ui(ui: &mut egui::Ui, transactions: &Vec<Transaction>, transa
     });
 }
 
-pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transactions: &mut Vec<Transaction>) {
+pub fn transactions_ui(
+    ui: &mut egui::Ui,
+    actor_roles: &Vec<ActorRole>,
+    transactions: &mut Vec<Transaction>,
+    execution: &Execution,
+) {
     let mut to_delete = Vec::new();
     egui::Grid::new("Actor Roles")
         .striped(true)
-        .spacing(&[10.0, 40.0])
+        .spacing([10.0, 40.0])
         .show(ui, |ui| {
             ui.strong("Action");
             ui.strong("Id");
@@ -138,13 +239,15 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                 .filter(|aar| !used_executors.contains(&aar.id))
                 .collect();
             let transactions_cloned = transactions.to_owned();
-            for (t_index, mut transaction) in transactions.iter_mut().enumerate() {
+            for (t_index, transaction) in transactions.iter_mut().enumerate() {
                 let initiator: Option<ActorRole> = actor_roles.iter().find(|ar| ar.id == transaction.initiator_id).cloned();
                 let executor: Option<ActorRole> = actor_roles.iter().find(|ar| ar.id == transaction.executor_id).cloned();
-                let can_delete = !transactions_cloned.iter().any(|tr| tr.impediments.iter().any(|imp| imp.impeding_transaction_id == transaction.id));
+                let can_delete = !transactions_cloned.iter().any(|tr| tr.impediments.iter().any(|imp| imp.impeding_transaction_id == transaction.id)
+                    || tr.initiations.iter().any(|link| link.initiated_transaction_id == transaction.id))
+                    && !execution.transactions_instances.iter().any(|i| i.transaction_id == transaction.id);
                 ui.add_enabled_ui(can_delete, |ui| {
                     if ui.button(RichText::new("❌").color(Color32::RED))
-                        .on_disabled_hover_text("Used in an impediment")
+                        .on_disabled_hover_text("Referenced by another transaction or an execution")
                         .clicked() {
                         to_delete.push(t_index);
                     }
@@ -172,8 +275,8 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
                             ui.selectable_value(&mut transaction.executor_id, actor_role.id.clone(), actor_role.name.clone());
                         }
                     });
-                initiations_ui(ui, &transactions_cloned, &mut transaction);
-                impediments_ui(ui, &transactions_cloned, &mut transaction);
+                initiations_ui(ui, &transactions_cloned, transaction);
+                impediments_ui(ui, &transactions_cloned, transaction);
                 ui.end_row();
             }
         });
@@ -181,7 +284,10 @@ pub fn transactions_ui(ui: &mut egui::Ui, actor_roles: &Vec<ActorRole>, transact
         transactions.remove(index);
     }
     ui.add_space(16.0);
-    if ui.button(RichText::new("➕").color(Color32::GREEN)).clicked() {
+    if ui
+        .button(RichText::new("➕").color(Color32::GREEN))
+        .clicked()
+    {
         transactions.push(Transaction::new());
     }
 }

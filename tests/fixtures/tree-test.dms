@@ -1,0 +1,111 @@
+(
+    name: "tree_test",
+    actor_roles: [
+        (
+            id: ("39ef84eb-bae4-4c16-99a8-15b575f4f252"),
+            name: "AR1",
+        ),
+        (
+            id: ("af152213-b478-4ecd-a96f-6843d0353e30"),
+            name: "AR2",
+        ),
+        (
+            id: ("dbf4abcf-33f5-471f-a0f6-f0ad730bc2f9"),
+            name: "AR3",
+        ),
+        (
+            id: ("a41f3d2d-30ff-4b82-b578-5ba22e00941f"),
+            name: "AR4",
+        ),
+    ],
+    transactions: [
+        (
+            id: ("cdf1685f-ef42-4028-9109-6d5dd05d6b57"),
+            t_id: "T1",
+            name: "tran1",
+            product: "prod1",
+            initiator_id: ("39ef84eb-bae4-4c16-99a8-15b575f4f252"),
+            executor_id: ("af152213-b478-4ecd-a96f-6843d0353e30"),
+            initiations: [
+                (
+                    initiating_c_fact: Requested,
+                    initiated_transaction_id: ("3d760712-db28-4d57-8233-59e483fb6320"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+            ],
+            impediments: [
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("3d760712-db28-4d57-8233-59e483fb6320"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("3d760712-db28-4d57-8233-59e483fb6320"),
+            t_id: "T2",
+            name: "tran2",
+            product: "prod2",
+            initiator_id: ("af152213-b478-4ecd-a96f-6843d0353e30"),
+            executor_id: ("dbf4abcf-33f5-471f-a0f6-f0ad730bc2f9"),
+            initiations: [
+                (
+                    initiating_c_fact: Requested,
+                    initiated_transaction_id: ("8cbf1ba7-4040-49d2-922b-43cecd9f8077"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+            ],
+            impediments: [
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("8cbf1ba7-4040-49d2-922b-43cecd9f8077"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("8cbf1ba7-4040-49d2-922b-43cecd9f8077"),
+            t_id: "T3",
+            name: "tran3",
+            product: "prod3",
+            initiator_id: ("dbf4abcf-33f5-471f-a0f6-f0ad730bc2f9"),
+            executor_id: ("a41f3d2d-30ff-4b82-b578-5ba22e00941f"),
+            initiations: [],
+            impediments: [],
+        ),
+    ],
+    subjects: [
+        (
+            id: ("fcfb545c-e7a7-406a-b56d-840cbc3db060"),
+            name: "subj1",
+        ),
+        (
+            id: ("a3ccae13-eef4-42d3-bca9-690a29a62e08"),
+            name: "subj2",
+        ),
+        (
+            id: ("fe2ff89c-b7fd-420b-b677-da3334e378b1"),
+            name: "subj3",
+        ),
+        (
+            id: ("c366a855-23e9-44b7-b999-67babf7ebb12"),
+            name: "init1",
+        ),
+    ],
+    adt: (
+        mappings: {
+            (("af152213-b478-4ecd-a96f-6843d0353e30"), ("fcfb545c-e7a7-406a-b56d-840cbc3db060")): Authorisation,
+            (("39ef84eb-bae4-4c16-99a8-15b575f4f252"), ("c366a855-23e9-44b7-b999-67babf7ebb12")): Authorisation,
+            (("dbf4abcf-33f5-471f-a0f6-f0ad730bc2f9"), ("a3ccae13-eef4-42d3-bca9-690a29a62e08")): Authorisation,
+            (("a41f3d2d-30ff-4b82-b578-5ba22e00941f"), ("fe2ff89c-b7fd-420b-b677-da3334e378b1")): Authorisation,
+        },
+    ),
+)

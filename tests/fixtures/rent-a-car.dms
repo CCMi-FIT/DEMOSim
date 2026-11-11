@@ -1,0 +1,162 @@
+(
+    name: "Rent-a-car",
+    actor_roles: [
+        (
+            id: ("f8bcfb67-d3a9-43af-879e-125a70f233a5"),
+            name: "rental completer",
+        ),
+        (
+            id: ("f9f449ec-36c9-4ee4-90b7-d20bc1b62bf7"),
+            name: "car taker",
+        ),
+        (
+            id: ("8d279154-46da-4b34-bccf-51f286f7c4e1"),
+            name: "car returner",
+        ),
+        (
+            id: ("727cb938-fab6-47bd-a95b-105d64a5068c"),
+            name: "deposit payer",
+        ),
+        (
+            id: ("e6b0d275-7e54-4f3b-8bbf-c648929f2365"),
+            name: "invoice payer",
+        ),
+        (
+            id: ("9680c526-693c-42e7-b0da-4cfb6c43c257"),
+            name: "renter",
+        ),
+    ],
+    transactions: [
+        (
+            id: ("9633f248-4fa1-48e0-9874-f49239ba2723"),
+            t_id: "T1",
+            name: "rental completing",
+            product: "[rental] is completed",
+            initiator_id: ("9680c526-693c-42e7-b0da-4cfb6c43c257"),
+            executor_id: ("f8bcfb67-d3a9-43af-879e-125a70f233a5"),
+            initiations: [
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("d7f5a5b3-e45c-4d0b-a2cc-0cc029a70e8b"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("e72ac26e-d705-4e2a-9c14-33ec7cd071c6"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("2f7f304e-c42b-4274-a65e-eefa700862fc"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("6cd21660-607e-4563-b970-606fbaad34d3"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+            ],
+            impediments: [
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("6cd21660-607e-4563-b970-606fbaad34d3"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("e72ac26e-d705-4e2a-9c14-33ec7cd071c6"),
+            t_id: "T2",
+            name: "car taking",
+            product: "the car of [rental] is taken",
+            initiator_id: ("f8bcfb67-d3a9-43af-879e-125a70f233a5"),
+            executor_id: ("f9f449ec-36c9-4ee4-90b7-d20bc1b62bf7"),
+            initiations: [],
+            impediments: [
+                (
+                    impeded_act: CAct(Request),
+                    impeding_transaction_id: ("d7f5a5b3-e45c-4d0b-a2cc-0cc029a70e8b"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("2f7f304e-c42b-4274-a65e-eefa700862fc"),
+            t_id: "T3",
+            name: "car returning",
+            product: "the car of [rental] is returned",
+            initiator_id: ("f8bcfb67-d3a9-43af-879e-125a70f233a5"),
+            executor_id: ("8d279154-46da-4b34-bccf-51f286f7c4e1"),
+            initiations: [],
+            impediments: [
+                (
+                    impeded_act: CAct(Request),
+                    impeding_transaction_id: ("e72ac26e-d705-4e2a-9c14-33ec7cd071c6"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("d7f5a5b3-e45c-4d0b-a2cc-0cc029a70e8b"),
+            t_id: "T4",
+            name: "deposit payment",
+            product: "the deposit of [rental] is paid",
+            initiator_id: ("f8bcfb67-d3a9-43af-879e-125a70f233a5"),
+            executor_id: ("727cb938-fab6-47bd-a95b-105d64a5068c"),
+            initiations: [],
+            impediments: [],
+        ),
+        (
+            id: ("6cd21660-607e-4563-b970-606fbaad34d3"),
+            t_id: "T5",
+            name: "invoice paying",
+            product: "the invoice of [rental] is paid",
+            initiator_id: ("f8bcfb67-d3a9-43af-879e-125a70f233a5"),
+            executor_id: ("e6b0d275-7e54-4f3b-8bbf-c648929f2365"),
+            initiations: [],
+            impediments: [
+                (
+                    impeded_act: CAct(Request),
+                    impeding_transaction_id: ("2f7f304e-c42b-4274-a65e-eefa700862fc"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+    ],
+    subjects: [
+        (
+            id: ("a1b381d6-2215-4a5e-8c5f-7ba782774173"),
+            name: "customer",
+        ),
+        (
+            id: ("5f297a34-40b7-4fc7-b46d-0ff80e0ea8e4"),
+            name: "desk clerk",
+        ),
+    ],
+    adt: (
+        mappings: {
+            (("f9f449ec-36c9-4ee4-90b7-d20bc1b62bf7"), ("a1b381d6-2215-4a5e-8c5f-7ba782774173")): Authorisation,
+            (("8d279154-46da-4b34-bccf-51f286f7c4e1"), ("a1b381d6-2215-4a5e-8c5f-7ba782774173")): Authorisation,
+            (("9680c526-693c-42e7-b0da-4cfb6c43c257"), ("a1b381d6-2215-4a5e-8c5f-7ba782774173")): Authorisation,
+            (("e6b0d275-7e54-4f3b-8bbf-c648929f2365"), ("a1b381d6-2215-4a5e-8c5f-7ba782774173")): Authorisation,
+            (("727cb938-fab6-47bd-a95b-105d64a5068c"), ("a1b381d6-2215-4a5e-8c5f-7ba782774173")): Authorisation,
+            (("f8bcfb67-d3a9-43af-879e-125a70f233a5"), ("5f297a34-40b7-4fc7-b46d-0ff80e0ea8e4")): Authorisation,
+        },
+    ),
+)

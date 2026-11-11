@@ -1,0 +1,150 @@
+(
+    name: "Pizzeria",
+    actor_roles: [
+        (
+            id: ("598be02a-6c92-495e-848f-04c9e0ece787"),
+            name: "customer",
+        ),
+        (
+            id: ("9a258a94-a8ab-4344-bebf-e079cba96eb7"),
+            name: "sale completer",
+        ),
+        (
+            id: ("8e842558-250e-44eb-bffc-da7a3695ce84"),
+            name: "sale payer",
+        ),
+        (
+            id: ("858c4ce0-ef8a-4f25-8dca-b0a6dc8a6278"),
+            name: "sale preparer",
+        ),
+        (
+            id: ("df1bd56e-dc16-4d79-93b3-1c5ee28d8ad8"),
+            name: "sale deliverer",
+        ),
+    ],
+    transactions: [
+        (
+            id: ("d329a997-4625-45e5-b939-b6ed5fbe9253"),
+            t_id: "T1",
+            name: "sale completing",
+            product: "sales is completed",
+            initiator_id: ("598be02a-6c92-495e-848f-04c9e0ece787"),
+            executor_id: ("9a258a94-a8ab-4344-bebf-e079cba96eb7"),
+            initiations: [
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("66800011-5939-421e-bae7-fc77a27bc4b0"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("44682189-1345-4e3f-84af-a46f6ea92330"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 1,
+                        max: Numeric(1),
+                    ),
+                ),
+                (
+                    initiating_c_fact: Promised,
+                    initiated_transaction_id: ("5b768df6-2f0e-44f0-a3d2-8cc5e1e78f70"),
+                    initiated_c_act: Request,
+                    multiplicity: (
+                        min: 0,
+                        max: Numeric(1),
+                    ),
+                ),
+            ],
+            impediments: [
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("44682189-1345-4e3f-84af-a46f6ea92330"),
+                    impeding_c_fact: Accepted,
+                ),
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("66800011-5939-421e-bae7-fc77a27bc4b0"),
+                    impeding_c_fact: Accepted,
+                ),
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("5b768df6-2f0e-44f0-a3d2-8cc5e1e78f70"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+        (
+            id: ("44682189-1345-4e3f-84af-a46f6ea92330"),
+            t_id: "T2",
+            name: "sale preparing",
+            product: "sale is prepared",
+            initiator_id: ("9a258a94-a8ab-4344-bebf-e079cba96eb7"),
+            executor_id: ("858c4ce0-ef8a-4f25-8dca-b0a6dc8a6278"),
+            initiations: [],
+            impediments: [
+                (
+                    impeded_act: CAct(Request),
+                    impeding_transaction_id: ("66800011-5939-421e-bae7-fc77a27bc4b0"),
+                    impeding_c_fact: Promised,
+                ),
+            ],
+        ),
+        (
+            id: ("66800011-5939-421e-bae7-fc77a27bc4b0"),
+            t_id: "T3",
+            name: "sale paying",
+            product: "sale is paid",
+            initiator_id: ("9a258a94-a8ab-4344-bebf-e079cba96eb7"),
+            executor_id: ("8e842558-250e-44eb-bffc-da7a3695ce84"),
+            initiations: [],
+            impediments: [],
+        ),
+        (
+            id: ("5b768df6-2f0e-44f0-a3d2-8cc5e1e78f70"),
+            t_id: "T4",
+            name: "sale delivering",
+            product: "sale is delivered",
+            initiator_id: ("9a258a94-a8ab-4344-bebf-e079cba96eb7"),
+            executor_id: ("df1bd56e-dc16-4d79-93b3-1c5ee28d8ad8"),
+            initiations: [],
+            impediments: [
+                (
+                    impeded_act: PAct,
+                    impeding_transaction_id: ("44682189-1345-4e3f-84af-a46f6ea92330"),
+                    impeding_c_fact: Accepted,
+                ),
+            ],
+        ),
+    ],
+    subjects: [
+        (
+            id: ("68bae0c2-7005-473e-b40b-7f7856afd448"),
+            name: "customer",
+        ),
+        (
+            id: ("008ec2e8-ad0a-4518-b497-036fc5fdcb3b"),
+            name: "salesman",
+        ),
+        (
+            id: ("c70d4ba2-8025-44b6-9197-714d1fc16d5d"),
+            name: "baker",
+        ),
+        (
+            id: ("991fa94b-9a54-43e3-8535-309351ce0ad1"),
+            name: "delivery boy",
+        ),
+    ],
+    adt: (
+        mappings: {
+            (("9a258a94-a8ab-4344-bebf-e079cba96eb7"), ("008ec2e8-ad0a-4518-b497-036fc5fdcb3b")): Authorisation,
+            (("8e842558-250e-44eb-bffc-da7a3695ce84"), ("68bae0c2-7005-473e-b40b-7f7856afd448")): Authorisation,
+            (("858c4ce0-ef8a-4f25-8dca-b0a6dc8a6278"), ("c70d4ba2-8025-44b6-9197-714d1fc16d5d")): Authorisation,
+            (("df1bd56e-dc16-4d79-93b3-1c5ee28d8ad8"), ("991fa94b-9a54-43e3-8535-309351ce0ad1")): Authorisation,
+            (("598be02a-6c92-495e-848f-04c9e0ece787"), ("68bae0c2-7005-473e-b40b-7f7856afd448")): Authorisation,
+        },
+    ),
+)

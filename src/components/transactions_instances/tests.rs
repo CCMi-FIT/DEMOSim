@@ -1,7 +1,7 @@
 use super::transactions_instances_ui;
 use crate::app::AppContext;
 use crate::execution::TransactionInstance;
-use crate::model::{Subject, SubjectId, Transaction};
+use crate::model::{ActorRole, AdtOption, Subject, SubjectId, Transaction};
 use egui::epaint::Shape;
 
 fn populated_context() -> (AppContext, SubjectId) {
@@ -21,6 +21,19 @@ fn populated_context() -> (AppContext, SubjectId) {
     let transaction = Transaction::new();
     context.model.subjects = vec![focused.clone(), other.clone(), outsider.clone()];
     context.model.transactions.push(transaction.clone());
+    for role_id in [&transaction.initiator_id, &transaction.executor_id] {
+        context.model.actor_roles.push(ActorRole {
+            id: role_id.clone(),
+            name: "Test role".into(),
+        });
+        for subject in &context.model.subjects {
+            context.model.adt.mappings.insert(
+                (role_id.clone(), subject.id.clone()),
+                AdtOption::Authorisation,
+            );
+        }
+    }
+
     for (initiator, executor, product) in [
         (&focused, &other, "Initiated product"),
         (&other, &focused, "Executed product"),
@@ -35,7 +48,8 @@ fn populated_context() -> (AppContext, SubjectId) {
         );
         context
             .execution
-            .add_transaction_instance(&context.model, instance);
+            .add_transaction_instance(&context.model, instance)
+            .unwrap();
     }
     (context, focused.id)
 }

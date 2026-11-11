@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::execution::{Execution, TransactionInstanceId};
 use crate::model::{CPAct, Model, SubjectId, TransactionId};
 use crate::windows::EguiWindows;
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
@@ -19,6 +19,7 @@ fn execute<F: Future<Output = ()> + 'static>(f: F) {
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct InitiateTransactionModalContext {
+    pub initiator_id_o: Option<SubjectId>,
     pub parent_transaction_instance_id: Option<TransactionInstanceId>,
     pub initiated_transaction_id_o: Option<TransactionId>,
     pub requested_product: String,
@@ -35,13 +36,23 @@ pub struct SubjectContext {
 
 impl SubjectContext {
     #[inline]
-    pub fn get_selected_next_act(&self, subject_id: &SubjectId, transaction_instance_id: &TransactionInstanceId) -> Option<&CPAct> {
-        self.selected_next_act.get(&(subject_id.clone(), transaction_instance_id.clone()))
+    pub fn get_selected_next_act(
+        &self,
+        subject_id: &SubjectId,
+        transaction_instance_id: &TransactionInstanceId,
+    ) -> Option<&CPAct> {
+        self.selected_next_act
+            .get(&(subject_id.clone(), transaction_instance_id.clone()))
     }
 
     #[inline]
-    pub fn clear_selected_next_act(&mut self, subject_id: &SubjectId, transaction_instance_id: &TransactionInstanceId) {
-        self.selected_next_act.remove(&(subject_id.clone(), transaction_instance_id.clone()));
+    pub fn clear_selected_next_act(
+        &mut self,
+        subject_id: &SubjectId,
+        transaction_instance_id: &TransactionInstanceId,
+    ) {
+        self.selected_next_act
+            .remove(&(subject_id.clone(), transaction_instance_id.clone()));
     }
 }
 
@@ -55,6 +66,8 @@ pub struct CPWorldContext {
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct AppContext {
+    #[serde(skip)]
+    pub error: Option<String>,
     pub model: Model,
     pub execution: Execution,
     pub initiate_transaction_modal_context: InitiateTransactionModalContext,
@@ -100,14 +113,22 @@ impl DemosimApp {
 
     fn try_load_model(&mut self) {
         if let Ok(model_text) = self.model_text_channel.1.try_recv() {
-            let model: Model = ron::from_str(&model_text).unwrap();
-            self.app_context = AppContext {
-                model,
-                ..Default::default()
-            };
+            match ron::from_str::<Model>(&model_text) {
+                Ok(model) => match model.validate() {
+                    Ok(()) => {
+                        self.app_context = AppContext {
+                            model,
+                            ..Default::default()
+                        }
+                    }
+                    Err(error) => {
+                        self.app_context.error = Some(format!("Cannot load model: {error}"))
+                    }
+                },
+                Err(error) => self.app_context.error = Some(format!("Cannot load model: {error}")),
+            }
         }
     }
-
 }
 
 #[cfg(test)]
@@ -122,6 +143,16 @@ impl eframe::App for DemosimApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.try_load_model();
+        if let Some(error) = self.app_context.error.clone() {
+            egui::Window::new("Operation could not be completed")
+                .collapsible(false)
+                .show(ctx, |ui| {
+                    ui.label(error);
+                    if ui.button("Dismiss").clicked() {
+                        self.app_context.error = None;
+                    }
+                });
+        }
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -152,7 +183,11 @@ impl eframe::App for DemosimApp {
                             .add_filter("DEMOsim", &["dms"])
                             .set_file_name(format!("{}.dms", self.app_context.model.name))
                             .save_file();
-                        let model_text = ron::ser::to_string_pretty(&self.app_context.model, ron::ser::PrettyConfig::default()).unwrap();
+                        let model_text = ron::ser::to_string_pretty(
+                            &self.app_context.model,
+                            ron::ser::PrettyConfig::default(),
+                        )
+                        .unwrap();
                         execute(async move {
                             let file = task.await;
                             if let Some(file) = file {
@@ -163,10 +198,8 @@ impl eframe::App for DemosimApp {
                     }
                     // NOTE: no File->Quit on web pages!
                     let is_web = cfg!(target_arch = "wasm32");
-                    if !is_web {
-                        if ui.button("Quit").clicked() {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
+                    if !is_web && ui.button("Quit").clicked() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                 });
                 ui.add_space(16.0);
@@ -233,7 +266,10 @@ impl eframe::App for DemosimApp {
 fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label(format!("Version: {}. Powered by ", env!("CARGO_PKG_VERSION")));
+        ui.label(format!(
+            "Version: {}. Powered by ",
+            env!("CARGO_PKG_VERSION")
+        ));
         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
         ui.label(" and ");
         ui.hyperlink_to(

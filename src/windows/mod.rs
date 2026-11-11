@@ -1,12 +1,15 @@
 use crate::app::{AppContext, InitiateTransactionModalContext};
 
 mod actor_roles;
-mod transactions;
-mod subjects;
 mod adt;
+mod c_p_world;
+mod subjects;
 mod subjects_dashboard;
 mod transaction_initiate_modal;
-mod c_p_world;
+mod transactions;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct EguiWindows {
@@ -38,19 +41,29 @@ impl EguiWindows {
             .open(actor_roles)
             .vscroll(true)
             .show(ctx, |ui| {
-                actor_roles::actor_roles_ui(ui, &model.transactions, &mut model.actor_roles)
+                actor_roles::actor_roles_ui(
+                    ui,
+                    &model.transactions,
+                    &mut model.actor_roles,
+                    &model.adt,
+                )
             });
         egui::Window::new("Transactions")
             .open(transactions)
             .vscroll(true)
             .show(ctx, |ui| {
-                transactions::transactions_ui(ui, &model.actor_roles, &mut model.transactions)
+                transactions::transactions_ui(
+                    ui,
+                    &model.actor_roles,
+                    &mut model.transactions,
+                    &app_context.execution,
+                )
             });
         egui::Window::new("Subjects")
             .open(subjects)
             .vscroll(true)
             .show(ctx, |ui| {
-                subjects::subjects_ui(ui, &mut model.subjects)
+                subjects::subjects_ui(ui, model, &app_context.execution)
             });
         egui::Window::new("ADT")
             .open(adt)
@@ -71,19 +84,23 @@ impl EguiWindows {
                         ui,
                         app_context,
                         &fp_id,
-                        transaction_initiate_modal.clone(),
+                        *transaction_initiate_modal,
                         |parent_transaction_instance_id, transaction_id| {
-                            new_initiate_transaction_modal_context_o = Some(InitiateTransactionModalContext {
-                                parent_transaction_instance_id,
-                                initiated_transaction_id_o: Some(transaction_id),
-                                requested_product: String::new(),
-                                addressee_id_o: None,
-                            });
+                            new_initiate_transaction_modal_context_o =
+                                Some(InitiateTransactionModalContext {
+                                    parent_transaction_instance_id,
+                                    initiator_id_o: Some(fp_id.clone()),
+                                    initiated_transaction_id_o: Some(transaction_id),
+                                    requested_product: String::new(),
+                                    addressee_id_o: None,
+                                });
                         },
                     );
                 }
             });
-        if let Some(new_initiate_transaction_modal_context) = new_initiate_transaction_modal_context_o {
+        if let Some(new_initiate_transaction_modal_context) =
+            new_initiate_transaction_modal_context_o
+        {
             app_context.initiate_transaction_modal_context = new_initiate_transaction_modal_context;
             transaction_initiate_modal_open_request = true;
         }
@@ -91,11 +108,9 @@ impl EguiWindows {
             .open(transaction_initiate_modal)
             .vscroll(true)
             .show(ctx, |ui| {
-                transaction_initiate_modal::view(
-                    ui,
-                    app_context,
-                    || { transaction_initiate_modal_close_request = true; }
-                )
+                transaction_initiate_modal::view(ui, app_context, || {
+                    transaction_initiate_modal_close_request = true;
+                })
             });
         if transaction_initiate_modal_open_request {
             self.transaction_initiate_modal = true;
@@ -112,9 +127,6 @@ impl EguiWindows {
         egui::Window::new("Coordination / Production World")
             .open(c_p_world)
             .vscroll(true)
-            .show(ctx, |ui| {
-                c_p_world::view(ui, app_context)
-            });
+            .show(ctx, |ui| c_p_world::view(ui, app_context));
     }
 }
-

@@ -16,7 +16,7 @@ pub fn transactions_instances_ui<F>(
     let mut to_delete = Vec::new();
     egui::Grid::new("Transactions Instances")
         .striped(true)
-        .spacing(&[10.0, 10.0])
+        .spacing([10.0, 10.0])
         .show(ui, |ui| {
             ui.strong("Transaction Instance ID");
             ui.strong("Transaction");
@@ -65,14 +65,35 @@ pub fn transactions_instances_ui<F>(
                 render_label(ui, initiator_subject.name.clone());
                 render_label(ui, executor_subject.name.clone());
                 render_label(ui, last_fact.to_string());
-                if can_delete && ui.button(RichText::new("❌").color(Color32::RED)).clicked() {
+                if can_delete
+                    && ui
+                        .add_enabled(
+                            execution.can_delete_transaction_instance(&t_i.id),
+                            egui::Button::new(RichText::new("❌").color(Color32::RED)),
+                        )
+                        .on_disabled_hover_text("Remove child instances first")
+                        .clicked()
+                {
                     to_delete.push(t_i.id.clone());
                 }
                 ui.end_row();
             }
         });
     for transaction_instance_id in to_delete.into_iter().rev() {
-        execution.delete_transaction_instance(&transaction_instance_id);
+        match execution.delete_transaction_instance(&transaction_instance_id) {
+            Ok(()) => {
+                app_context
+                    .subject_context
+                    .selected_next_act
+                    .retain(|(_, id), _| id != &transaction_instance_id);
+                if app_context.hi_transaction_instance_id_o.as_ref()
+                    == Some(&transaction_instance_id)
+                {
+                    app_context.hi_transaction_instance_id_o = None;
+                }
+            }
+            Err(error) => app_context.error = Some(error),
+        }
     }
 }
 

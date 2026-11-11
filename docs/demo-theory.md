@@ -265,11 +265,16 @@ Decide explicitly how ordinary actions behave while a revocation is pending and 
 overlapping proposals are handled. The six diagrams alone do not settle those
 concurrency policies.
 
-## 8. Mapping to the current implementation
+## 8. Implementation review and subsequent fixes
 
-These are observations at the revisions named above, not changes made by this document.
+The table records the initial observations at the revisions named above. Subsequent
+fixes restore decline/request recovery, validate domain actions, protect references,
+and correct dependency counts and scope. Regression tests live in
+`src/execution/tests.rs`, `src/model/tests.rs`, `src/app/tests.rs`,
+`src/windows/tests.rs`, and `tests/sample_models.rs`. Preserve the
+distinction between this historical review, implemented fixes, and remaining limits.
 
-| Code | Domain meaning and current limitation |
+| Code | Domain meaning and limitation at initial review |
 | --- | --- |
 | [`model.rs`](../src/model.rs): `Transaction`, `ActorRole`, `Subject`, `Adt` | `Transaction` represents a **kind**. It has one initiator-role field and one executor-role field. `Adt` represents subject/role assignments, not a detailed model of delegated acts. |
 | [`execution.rs`](../src/execution.rs): `TransactionInstance` | Represents an instance, including parent instance, kind, participating subjects, and a free-text product. This does not yet represent the FM's typed/versioned product facts. |
